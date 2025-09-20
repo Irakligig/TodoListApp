@@ -14,6 +14,6 @@ namespace TodoListApp.Services.Database
 
         public DateTime? UpdatedAt { get; set; }// Last update timestamp
 
-        // collection for tasks later
+        public ICollection<TodoTaskEntity> TodoItems { get; set; } = new List<TodoTaskEntity>(); // Navigation property to related to-do items
     }
 }

@@ -10,5 +10,16 @@ namespace TodoListApp.Services.Database
         }
 
         public DbSet<TodoListEntity> TodoLists => this.Set<TodoListEntity>();
+
+        public DbSet<TodoTaskEntity> TodoTasks => this.Set<TodoTaskEntity>();
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            _ = modelBuilder.Entity<TodoListEntity>()
+                .HasMany(tl => tl.TodoItems)
+                .WithOne(t => t.TodoList)
+                .HasForeignKey(t => t.TodoListId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
     }
 }

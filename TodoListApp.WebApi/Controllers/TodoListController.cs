@@ -23,7 +23,7 @@ public class TodoListController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
         var lists = await this.todoListService.GetAllTodoListsAsync(userId);
 
         if (!lists.Any()) // check if empty
@@ -51,7 +51,7 @@ public class TodoListController : ControllerBase
             return this.BadRequest(this.ModelState);
         }
 
-        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         var todoListDto = new TodoList
         {
@@ -80,7 +80,7 @@ public class TodoListController : ControllerBase
             return this.BadRequest(this.ModelState);
         }
 
-        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         var todoListDto = new TodoList
         {
@@ -108,7 +108,7 @@ public class TodoListController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         try
         {

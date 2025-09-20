@@ -10,4 +10,6 @@ public class TodoListModel
     public string Name { get; set; } = null!;
 
     public string? Description { get; set; }
+
+    public List<TodoTaskModel> Tasks { get; set; } = new List<TodoTaskModel>();
 }

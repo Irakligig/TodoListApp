@@ -1,28 +1,49 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TodoListApp.Services.Database;
 using TodoListApp.WebApi.Services;
 
-namespace TodoListApp.WebApi;
+var builder = WebApplication.CreateBuilder(args);
 
-public static class Program
+// DbContext & Services
+builder.Services.AddDbContext<TodoListDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("TodoListDb")));
+builder.Services.AddScoped<ITodoListDatabaseService, TodoListDatabaseService>();
+builder.Services.AddControllers();
+
+// CORS for Swagger / local testing
+builder.Services.AddCors(options =>
 {
-    public static void Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
+    options.AddDefaultPolicy(policy =>
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+});
 
-        // added db context to webapi project
-        _ = builder.Services.AddDbContext<TodoListDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("TodoListDb")));
+var app = builder.Build();
 
-        // addscoped because we want new instance for every http request
-        _ = builder.Services.AddScoped<ITodoListDatabaseService, TodoListDatabaseService>();
+// Middleware order
+app.UseHttpsRedirection();
+app.UseRouting();
+app.UseCors();
 
-        _ = builder.Services.AddControllers();
+// Inject a fake user for testing
+app.Use(async (context, next) =>
+{
+    var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "dev-key") };
+    context.User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Dev"));
+    await next();
+});
 
-        var app = builder.Build();
+app.UseAuthorization(); // still needed for [Authorize] attributes
 
-        _ = app.MapControllers();
+// Map controllers
+app.MapControllers();
 
-        app.Run();
-    }
-}
+// Swagger (optional)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "TodoList API V1");
+    c.RoutePrefix = string.Empty;
+});
+
+app.Run();
