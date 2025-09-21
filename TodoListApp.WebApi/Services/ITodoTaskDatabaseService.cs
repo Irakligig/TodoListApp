@@ -13,4 +13,8 @@ public interface ITodoTaskDatabaseService
     Task UpdateTaskAsync(TodoTask task, string ownerId);
 
     Task DeleteTaskAsync(int taskId, string ownerId);
+
+    Task<IEnumerable<TodoTask>> GetAssignedTasksAsync(string userId, string? status = null, string? sortby = null);
+
+    Task UpdateTaskStatusAsync(int taskId, bool isCompleted, string userId);
 }

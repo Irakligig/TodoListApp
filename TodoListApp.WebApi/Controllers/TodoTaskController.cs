@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using TodoListApp.WebApi.Data;
 using TodoListApp.WebApi.Models;
 using TodoListApp.WebApi.Services;
@@ -168,4 +169,50 @@ public class TodoTaskController : ControllerBase
             return Forbid(ex.Message);
         }
     }
+
+    [HttpGet("assigned")]
+    public async Task<IActionResult> GetAllAssigned([FromQuery] string status, [FromQuery] string sortby)
+    {
+        var user = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+        try
+        {
+            var tasks = await this.taskService.GetAssignedTasksAsync(user, status, sortby);
+            var models = tasks.Select(t => new TodoTaskModel
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Description = t.Description,
+                DueDate = t.DueDate,
+                IsCompleted = t.IsCompleted,
+                TodoListId = t.TodoListId,
+                AssignedUserId = user,
+            });
+            return this.Ok(models);
+        }
+        catch (ArgumentException ex)
+        {
+            return this.BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPatch("assigned/{id}/status")]
+    public async Task<IActionResult> ChangeTaskStatus(int id, [FromQuery] bool isCompleted)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+
+        try
+        {
+            await taskService.UpdateTaskStatusAsync(id, isCompleted, userId);
+            return NoContent(); // 204 - success with no body
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+    }
+
 }

@@ -16,6 +16,8 @@ namespace TodoListApp.Services.Database
 
         public string OwnerId { get; set; } = string.Empty;
 
+        public string AssignedUserId { get; set; } = string.Empty;
+
         // Navigation property
         public TodoListEntity TodoList { get; set; } = null!;
     }

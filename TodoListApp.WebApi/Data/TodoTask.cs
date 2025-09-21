@@ -13,5 +13,7 @@ namespace TodoListApp.WebApi.Data
         public bool IsCompleted { get; set; }           // Completion status
 
         public int TodoListId { get; set; }             // Parent TodoList ID
+
+        public string AssignedUserId { get; set; } = string.Empty; // User assigned to this task
     }
 }

@@ -132,4 +132,60 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
         context.TodoTasks.Remove(entity);
         await context.SaveChangesAsync();
     }
+
+    public async Task<IEnumerable<TodoTask>> GetAssignedTasksAsync(string userId, string? status = null, string? sortby = null)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("User ID cannot be null or empty.");
+        }
+
+        var query = this.context.TodoTasks.AsQueryable();
+
+        query = query.Where(t => t.AssignedUserId == userId);
+
+        _ = status?.ToLower() switch
+        {
+            "active" => query.Where(t => !t.IsCompleted),
+            "completed" => query.Where(t => t.IsCompleted),
+            "overdue" => query.Where(t => t.DueDate < DateTime.UtcNow && !t.IsCompleted),
+            _ => query
+        };
+
+        _ = sortby?.ToLower() switch
+        {
+            "duedate" => query.OrderBy(t => t.DueDate),
+            "name" => query.OrderBy(t => t.Name),
+            _ => query.OrderBy(t => t.Id)
+        };
+
+        return await query.Select(t => new TodoTask
+        {
+            Id = t.Id,
+            Name = t.Name,
+            Description = t.Description,
+            DueDate = t.DueDate,
+            IsCompleted = t.IsCompleted,
+            TodoListId = t.TodoListId,
+            AssignedUserId = t.AssignedUserId,
+        }).ToListAsync();
+    }
+
+    public async Task UpdateTaskStatusAsync(int taskId, bool isCompleted, string userId)
+    {
+        // Find task assigned to the current user
+        var task = await this.context.TodoTasks
+            .FirstOrDefaultAsync(t => t.Id == taskId && t.AssignedUserId == userId);
+
+        if (task == null)
+        {
+            throw new KeyNotFoundException($"Task with Id {taskId} not found or not assigned to user.");
+        }
+
+        // Update status
+        task.IsCompleted = isCompleted;
+
+        _ = await this.context.SaveChangesAsync();
+    }
+
 }
