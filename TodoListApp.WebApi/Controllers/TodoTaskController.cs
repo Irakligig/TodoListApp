@@ -171,7 +171,7 @@ public class TodoTaskController : ControllerBase
     }
 
     [HttpGet("assigned")]
-    public async Task<IActionResult> GetAllAssigned([FromQuery] string status, [FromQuery] string sortby)
+    public async Task<IActionResult> GetAllAssigned([FromQuery] string? status = null, [FromQuery] string? sortby = null)
     {
         var user = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
         try
