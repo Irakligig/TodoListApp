@@ -16,13 +16,13 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
     public async Task<IEnumerable<TodoTask>> GetAllTasksAsync(int todoListId, string ownerId)
     {
         // Ensure the list belongs to the user
-        var list = await context.TodoLists.FindAsync(todoListId);
+        var list = await this.context.TodoLists.FindAsync(todoListId);
         if (list == null || list.OwnerId != ownerId)
         {
             throw new UnauthorizedAccessException("You do not have access to this todo list.");
         }
 
-        return await context.TodoTasks
+        return await this.context.TodoTasks
             .Where(t => t.TodoListId == todoListId)
             .Select(t => new TodoTask
             {
@@ -38,7 +38,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
 
     public async Task<TodoTask?> GetTaskByIdAsync(int taskId, string ownerId)
     {
-        var task = await context.TodoTasks.Include(t => t.TodoList)
+        var task = await this.context.TodoTasks.Include(t => t.TodoList)
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null)
@@ -58,13 +58,13 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             Description = task.Description,
             DueDate = task.DueDate,
             IsCompleted = task.IsCompleted,
-            TodoListId = task.TodoListId
+            TodoListId = task.TodoListId,
         };
     }
 
     public async Task AddTaskAsync(TodoTask task, string ownerId)
     {
-        var list = await context.TodoLists.FindAsync(task.TodoListId);
+        var list = await this.context.TodoLists.FindAsync(task.TodoListId);
         if (list == null)
         {
             throw new KeyNotFoundException($"Todo list with Id {task.TodoListId} not found.");
@@ -82,18 +82,18 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             DueDate = task.DueDate ?? DateTime.MinValue,
             IsCompleted = task.IsCompleted,
             TodoListId = task.TodoListId,
-            OwnerId = ownerId
+            OwnerId = ownerId,
         };
 
-        await context.TodoTasks.AddAsync(entity);
-        await context.SaveChangesAsync();
+        _ = await this.context.TodoTasks.AddAsync(entity);
+        _ = await this.context.SaveChangesAsync();
 
         task.Id = entity.Id; // return generated ID
     }
 
     public async Task UpdateTaskAsync(TodoTask task, string ownerId)
     {
-        var entity = await context.TodoTasks.Include(t => t.TodoList)
+        var entity = await this.context.TodoTasks.Include(t => t.TodoList)
             .FirstOrDefaultAsync(t => t.Id == task.Id);
 
         if (entity == null)
@@ -111,12 +111,12 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
         entity.DueDate = task.DueDate ?? entity.DueDate;
         entity.IsCompleted = task.IsCompleted;
 
-        await context.SaveChangesAsync();
+        _ = await this.context.SaveChangesAsync();
     }
 
     public async Task DeleteTaskAsync(int taskId, string ownerId)
     {
-        var entity = await context.TodoTasks.Include(t => t.TodoList)
+        var entity = await this.context.TodoTasks.Include(t => t.TodoList)
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (entity == null)
@@ -129,8 +129,8 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             throw new UnauthorizedAccessException("You do not have access to delete this task.");
         }
 
-        context.TodoTasks.Remove(entity);
-        await context.SaveChangesAsync();
+        _ = this.context.TodoTasks.Remove(entity);
+        _ = await this.context.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<TodoTask>> GetAssignedTasksAsync(string userId, string? status = null, string? sortby = null)
@@ -187,5 +187,4 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
 
         _ = await this.context.SaveChangesAsync();
     }
-
 }

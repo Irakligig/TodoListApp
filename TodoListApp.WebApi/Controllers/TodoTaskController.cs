@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using TodoListApp.WebApi.Data;
 using TodoListApp.WebApi.Models;
 using TodoListApp.WebApi.Services;
@@ -24,14 +23,14 @@ public class TodoTaskController : ControllerBase
     [HttpGet("{todoListId}")]
     public async Task<IActionResult> GetAll(int todoListId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
         try
         {
-            var tasks = await taskService.GetAllTasksAsync(todoListId, userId);
+            var tasks = await this.taskService.GetAllTasksAsync(todoListId, userId);
 
             if (!tasks.Any())
             {
-                return NotFound(new { message = "No tasks found." });
+                return this.NotFound(new { message = "No tasks found." });
             }
 
             var models = tasks.Select(t => new TodoTaskModel
@@ -44,11 +43,11 @@ public class TodoTaskController : ControllerBase
                 TodoListId = t.TodoListId,
             });
 
-            return Ok(models);
+            return this.Ok(models);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return this.Forbid(ex.Message);
         }
     }
 
@@ -56,12 +55,12 @@ public class TodoTaskController : ControllerBase
     [HttpGet("task/{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
-        var task = await taskService.GetTaskByIdAsync(id, userId);
+        var task = await this.taskService.GetTaskByIdAsync(id, userId);
         if (task == null)
         {
-            return NotFound(new { message = $"Task with Id {id} not found." });
+            return this.NotFound(new { message = $"Task with Id {id} not found." });
         }
 
         var model = new TodoTaskModel
@@ -74,19 +73,19 @@ public class TodoTaskController : ControllerBase
             TodoListId = task.TodoListId,
         };
 
-        return Ok(model);
+        return this.Ok(model);
     }
 
     // POST: api/todotask
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] TodoTaskModel model)
     {
-        if (!ModelState.IsValid)
+        if (!this.ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return this.BadRequest(this.ModelState);
         }
 
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         var taskDto = new TodoTask
         {
@@ -94,22 +93,22 @@ public class TodoTaskController : ControllerBase
             Description = model.Description,
             DueDate = model.DueDate,
             IsCompleted = model.IsCompleted,
-            TodoListId = model.TodoListId
+            TodoListId = model.TodoListId,
         };
 
         try
         {
-            await taskService.AddTaskAsync(taskDto, userId);
+            await this.taskService.AddTaskAsync(taskDto, userId);
             model.Id = taskDto.Id;
-            return CreatedAtAction(nameof(GetById), new { id = model.Id }, model);
+            return this.CreatedAtAction(nameof(this.GetById), new { id = model.Id }, model);
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return this.NotFound(new { message = ex.Message });
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return this.Forbid(ex.Message);
         }
     }
 
@@ -117,12 +116,12 @@ public class TodoTaskController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] TodoTaskModel model)
     {
-        if (!ModelState.IsValid)
+        if (!this.ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return this.BadRequest(this.ModelState);
         }
 
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         var taskDto = new TodoTask
         {
@@ -131,21 +130,21 @@ public class TodoTaskController : ControllerBase
             Description = model.Description,
             DueDate = model.DueDate,
             IsCompleted = model.IsCompleted,
-            TodoListId = model.TodoListId
+            TodoListId = model.TodoListId,
         };
 
         try
         {
-            await taskService.UpdateTaskAsync(taskDto, userId);
-            return NoContent();
+            await this.taskService.UpdateTaskAsync(taskDto, userId);
+            return this.NoContent();
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return this.NotFound(new { message = ex.Message });
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return this.Forbid(ex.Message);
         }
     }
 
@@ -153,20 +152,20 @@ public class TodoTaskController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         try
         {
-            await taskService.DeleteTaskAsync(id, userId);
-            return NoContent();
+            await this.taskService.DeleteTaskAsync(id, userId);
+            return this.NoContent();
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return this.NotFound(new { message = ex.Message });
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return this.Forbid(ex.Message);
         }
     }
 
@@ -198,21 +197,20 @@ public class TodoTaskController : ControllerBase
     [HttpPatch("assigned/{id}/status")]
     public async Task<IActionResult> ChangeTaskStatus(int id, [FromQuery] bool isCompleted)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         try
         {
-            await taskService.UpdateTaskStatusAsync(id, isCompleted, userId);
-            return NoContent(); // 204 - success with no body
+            await this.taskService.UpdateTaskStatusAsync(id, isCompleted, userId);
+            return this.NoContent(); // 204 - success with no body
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return this.NotFound(new { message = ex.Message });
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return this.Forbid(ex.Message);
         }
     }
-
 }

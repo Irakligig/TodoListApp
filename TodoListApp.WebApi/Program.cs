@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using TodoListApp.Services.Database;
 using TodoListApp.WebApi.Services;
 
@@ -22,7 +22,6 @@ builder.Services.AddCors(options =>
 // Swagger generator
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 
 var app = builder.Build();
 

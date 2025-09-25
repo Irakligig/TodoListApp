@@ -9,13 +9,19 @@ public class Program
         // Add services to the container.
         builder.Services.AddControllersWithViews();
 
+        // Register HttpClient for calling the Web API
+        builder.Services.AddHttpClient("TodoListApi", client =>
+        {
+            // Base URL of your Web API
+            client.BaseAddress = new Uri("https://localhost:7001/"); // change to your API port
+        });
+
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Home/Error");
-            // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
             app.UseHsts();
         }
 

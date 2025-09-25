@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
-using System.IO;
 using TodoListApp.Services.Database;
 
 namespace TodoListApp.WebApi
@@ -19,7 +17,7 @@ namespace TodoListApp.WebApi
             var optionsBuilder = new DbContextOptionsBuilder<TodoListDbContext>();
             var connectionString = configuration.GetConnectionString("TodoListDb");
 
-            optionsBuilder.UseSqlServer(connectionString);
+            _ = optionsBuilder.UseSqlServer(connectionString);
 
             return new TodoListDbContext(optionsBuilder.Options);
         }
