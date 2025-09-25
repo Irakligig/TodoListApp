@@ -92,7 +92,14 @@ public class TodoListController : ControllerBase
         try
         {
             await this.todoListService.UpdateTodoListAsync(todoListDto, userId);
-            return this.NoContent();
+
+            // Return updated model as JSON
+            return this.Ok(new TodoListModel
+            {
+                Id = todoListDto.Id,
+                Name = todoListDto.Name,
+                Description = todoListDto.Description
+            });
         }
         catch (KeyNotFoundException ex)
         {

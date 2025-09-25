@@ -20,8 +20,8 @@ builder.Services.AddCors(options =>
 });
 
 // Swagger generator
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+//builder.Services.AddEndpointsApiExplorer();
+//builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
@@ -44,11 +44,11 @@ app.UseAuthorization(); // still needed for [Authorize] attributes
 app.MapControllers();
 
 // Swagger (optional)
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "TodoList API V1");
-    c.RoutePrefix = string.Empty;
-});
+//app.UseSwagger();
+//app.UseSwaggerUI(c =>
+//{
+//    c.SwaggerEndpoint("/swagger/v1/swagger.json", "TodoList API V1");
+//    c.RoutePrefix = string.Empty;
+//});
 
 app.Run();

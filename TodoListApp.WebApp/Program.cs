@@ -1,41 +1,31 @@
-namespace TodoListApp.WebApp;
+using TodoListApp.WebApp.Services;
 
-public class Program
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+
+// Register ITodoListWebApiService
+builder.Services.AddHttpClient<ITodoListWebApiService, TodoListWebApiService>(client =>
 {
-    public static void Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
+    client.BaseAddress = new Uri("https://localhost:7001/");
+});
 
-        // Add services to the container.
-        builder.Services.AddControllersWithViews();
+var app = builder.Build();
 
-        // Register HttpClient for calling the Web API
-        builder.Services.AddHttpClient("TodoListApi", client =>
-        {
-            // Base URL of your Web API
-            client.BaseAddress = new Uri("https://localhost:7001/"); // change to your API port
-        });
-
-        var app = builder.Build();
-
-        // Configure the HTTP request pipeline.
-        if (!app.Environment.IsDevelopment())
-        {
-            app.UseExceptionHandler("/Home/Error");
-            app.UseHsts();
-        }
-
-        app.UseHttpsRedirection();
-        app.UseStaticFiles();
-
-        app.UseRouting();
-
-        app.UseAuthorization();
-
-        app.MapControllerRoute(
-            name: "default",
-            pattern: "{controller=Home}/{action=Index}/{id?}");
-
-        app.Run();
-    }
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
 }
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=TodoList}/{action=Index}/{id?}");
+
+app.Run();
