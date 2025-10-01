@@ -1,0 +1,36 @@
+@model IEnumerable<TodoListApp.WebApi.Models.TodoTaskModel>
+@{
+    var listId = ViewBag.ListId;
+    ViewData["Title"] = "Tasks";
+}
+
+<h2>Tasks</h2>
+
+<a asp-action="Create" asp-route-listId="@listId">Create New Task</a>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var task in Model)
+        {
+            <tr>
+                <td>@task.Name</td>
+                <td>@task.IsCompleted</td>
+                <td>
+                    <a asp-action="Edit" asp-route-listId="@task.TodoListId" asp-route-id="@task.Id">Edit</a>
+                    <form asp-action="Delete" method="post" style="display:inline">
+                        <input type="hidden" name="listId" value="@task.TodoListId" />
+                        <input type="hidden" name="id" value="@task.Id" />
+                        <button type="submit" class="btn btn-link">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

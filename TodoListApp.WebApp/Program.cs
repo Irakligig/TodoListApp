@@ -5,14 +5,21 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Register ITodoListWebApiService
+// Register ITodoListWebApiService with HttpClient
 builder.Services.AddHttpClient<ITodoListWebApiService, TodoListWebApiService>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7001/"); // Web API base URL
+});
+
+// Register ITodoTaskWebApiService with HttpClient
+builder.Services.AddHttpClient<ITodoTaskWebApiService, TodoTaskWebApiService>(client =>
 {
     client.BaseAddress = new Uri("https://localhost:7001/");
 });
 
 var app = builder.Build();
 
+// Middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -21,7 +28,10 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
+
+// --- AUTH: here you can use cookie auth if needed ---
 app.UseAuthorization();
 
 app.MapControllerRoute(

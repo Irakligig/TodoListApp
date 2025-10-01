@@ -1,10 +1,24 @@
-@model TodoListApp.WebApi.Models.TodoListModel
+@model TodoListApp.WebApi.Models.TodoTaskModel
+@{
+    ViewData["Title"] = "Create Task";
+}
 
-<h2>Add Todo List</h2>
+<h2>Create Task</h2>
+
 <form asp-action="Create" method="post">
-    <label>Name</label>
-    <input asp-for="Name" />
-    <label>Description</label>
-    <input asp-for="Description" />
-    <button type="submit">Save</button>
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="IsCompleted"></label>
+        <input asp-for="IsCompleted" type="checkbox" />
+    </div>
+
+    <input type="hidden" asp-for="TodoListId" />
+
+    <button type="submit" class="btn btn-primary">Create</button>
+    <a asp-action="Index" asp-route-listId="@ViewBag.ListId" class="btn btn-secondary">Cancel</a>
 </form>

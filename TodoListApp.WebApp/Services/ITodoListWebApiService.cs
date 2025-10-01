@@ -6,9 +6,9 @@ public interface ITodoListWebApiService
 {
     Task<IEnumerable<TodoListModel>> GetTodoListsAsync();
 
-    Task<TodoListModel?> AddTodoListAsync(TodoListModel newList);
+    Task AddTodoListAsync(TodoListModel newList);
 
-    Task<bool> DeleteTodoListAsync(int id);
+    Task UpdateTodoListAsync(TodoListModel updatedList);
 
-    Task<TodoListModel?> UpdateTodoListAsync(TodoListModel updatedList);
+    Task DeleteTodoListAsync(int id);
 }

@@ -17,21 +17,35 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
     {
         // Ensure the list belongs to the user
         var list = await this.context.TodoLists.FindAsync(todoListId);
-        if (list == null || list.OwnerId != ownerId)
+
+        // If the list is NULL, throw KeyNotFoundException (maps to 404 in controller)
+        if (list == null)
+        {
+            throw new KeyNotFoundException($"Todo list with Id {todoListId} not found.");
+        }
+
+        // If the list exists but owner doesn't match (using case-insensitive check for robustness)
+        if (!string.Equals(list.OwnerId, ownerId, StringComparison.OrdinalIgnoreCase))
         {
             throw new UnauthorizedAccessException("You do not have access to this todo list.");
         }
 
+        // 🛑 CRITICAL STEP 1: Use AsNoTracking() to prevent Change Tracker interference
+        // 🛑 CRITICAL STEP 2: Use IgnoreQueryFilters() to bypass any hidden global filters
         return await this.context.TodoTasks
+            .AsNoTracking()
+            .IgnoreQueryFilters()
             .Where(t => t.TodoListId == todoListId)
-            .Select(t => new TodoTask
+            .Select(t => new TodoTask()
             {
+                // Data mapping (projection) must be complete to avoid ID=0
                 Id = t.Id,
                 Name = t.Name,
                 Description = t.Description,
                 DueDate = t.DueDate,
                 IsCompleted = t.IsCompleted,
                 TodoListId = t.TodoListId,
+                AssignedUserId = t.AssignedUserId,
             })
             .ToListAsync();
     }
@@ -83,6 +97,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             IsCompleted = task.IsCompleted,
             TodoListId = task.TodoListId,
             OwnerId = ownerId,
+            AssignedUserId = task.AssignedUserId,
         };
 
         _ = await this.context.TodoTasks.AddAsync(entity);

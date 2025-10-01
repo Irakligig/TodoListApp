@@ -1,0 +1,18 @@
+@model TodoListApp.WebApi.Models.TodoTaskModel
+@{
+    ViewData["Title"] = "Task Details";
+}
+
+<h2>Task Details</h2>
+
+<div>
+    <strong>Title:</strong> @Model.Name
+</div>
+<div>
+    <strong>Description:</strong> @Model.Description
+</div>
+<div>
+    <strong>Status:</strong> @Model.IsCompleted
+</div>
+
+<a asp-action="Index" asp-route-listId="@Model.TodoListId">Back to List</a>

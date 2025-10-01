@@ -1,10 +1,20 @@
 @model IEnumerable<TodoListApp.WebApi.Models.TodoListModel>
+@{
+    ViewData["Title"] = "Todo Lists";
+}
 
 <h2>Todo Lists</h2>
-<a asp-action="Create">Add New</a>
-<table>
+
+<a asp-action="Create" class="btn btn-success mb-2">Add New List</a>
+
+<table class="table table-striped">
     <thead>
-        <tr><th>ID</th><th>Name</th><th>Description</th><th>Actions</th></tr>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Actions</th>
+        </tr>
     </thead>
     <tbody>
         @foreach (var item in Model)
@@ -14,8 +24,9 @@
                 <td>@item.Name</td>
                 <td>@item.Description</td>
                 <td>
-                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                    <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+                    <a asp-controller="TodoTask" asp-action="Index" asp-route-listId="@item.Id" class="btn btn-sm btn-primary">View Tasks</a>
                 </td>
             </tr>
         }

@@ -7,9 +7,9 @@ using TodoListApp.WebApi.Services;
 
 namespace TodoListApp.WebApi.Controllers;
 
-[Authorize] // Require authentication
+[Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/todolists/{todoListId}/tasks")]
 public class TodoTaskController : ControllerBase
 {
     private readonly ITodoTaskDatabaseService taskService;
@@ -19,20 +19,15 @@ public class TodoTaskController : ControllerBase
         this.taskService = taskService;
     }
 
-    // GET: api/todotask/{todoListId}
-    [HttpGet("{todoListId}")]
+    // GET: api/todolists/{todoListId}/tasks
+    [HttpGet]
     public async Task<IActionResult> GetAll(int todoListId)
     {
         var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+
         try
         {
             var tasks = await this.taskService.GetAllTasksAsync(todoListId, userId);
-
-            if (!tasks.Any())
-            {
-                return this.NotFound(new { message = "No tasks found." });
-            }
-
             var models = tasks.Select(t => new TodoTaskModel
             {
                 Id = t.Id,
@@ -41,26 +36,31 @@ public class TodoTaskController : ControllerBase
                 DueDate = t.DueDate,
                 IsCompleted = t.IsCompleted,
                 TodoListId = t.TodoListId,
+                AssignedUserId = t.AssignedUserId
             });
 
             return this.Ok(models);
         }
-        catch (UnauthorizedAccessException ex)
+        catch (KeyNotFoundException ex)
         {
-            return this.Forbid(ex.Message);
+            return this.NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return this.Forbid();
         }
     }
 
-    // GET: api/todotask/task/{id}
-    [HttpGet("task/{id}")]
-    public async Task<IActionResult> GetById(int id)
+    // GET: api/todolists/{todoListId}/tasks/{taskId}
+    [HttpGet("{taskId}")]
+    public async Task<IActionResult> GetById(int todoListId, int taskId)
     {
         var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
-        var task = await this.taskService.GetTaskByIdAsync(id, userId);
-        if (task == null)
+        var task = await this.taskService.GetTaskByIdAsync(taskId, userId);
+        if (task == null || task.TodoListId != todoListId)
         {
-            return this.NotFound(new { message = $"Task with Id {id} not found." });
+            return this.NotFound(new { message = $"Task with Id {taskId} not found in List {todoListId}." });
         }
 
         var model = new TodoTaskModel
@@ -71,14 +71,15 @@ public class TodoTaskController : ControllerBase
             DueDate = task.DueDate,
             IsCompleted = task.IsCompleted,
             TodoListId = task.TodoListId,
+            AssignedUserId = task.AssignedUserId
         };
 
         return this.Ok(model);
     }
 
-    // POST: api/todotask
+    // POST: api/todolists/{todoListId}/tasks
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] TodoTaskModel model)
+    public async Task<IActionResult> Create(int todoListId, [FromBody] TodoTaskModel model)
     {
         if (!this.ModelState.IsValid)
         {
@@ -93,14 +94,20 @@ public class TodoTaskController : ControllerBase
             Description = model.Description,
             DueDate = model.DueDate,
             IsCompleted = model.IsCompleted,
-            TodoListId = model.TodoListId,
+            TodoListId = todoListId,
+            AssignedUserId = userId // adjust if you want to allow custom assignment
         };
 
         try
         {
             await this.taskService.AddTaskAsync(taskDto, userId);
             model.Id = taskDto.Id;
-            return this.CreatedAtAction(nameof(this.GetById), new { id = model.Id }, model);
+            model.TodoListId = todoListId;
+            model.AssignedUserId = taskDto.AssignedUserId;
+
+            return this.CreatedAtAction(nameof(this.GetById),
+                new { todoListId, taskId = model.Id },
+                model);
         }
         catch (KeyNotFoundException ex)
         {
@@ -112,9 +119,9 @@ public class TodoTaskController : ControllerBase
         }
     }
 
-    // PUT: api/todotask/{id}
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] TodoTaskModel model)
+    // PUT: api/todolists/{todoListId}/tasks/{taskId}
+    [HttpPut("{taskId}")]
+    public async Task<IActionResult> Update(int todoListId, int taskId, [FromBody] TodoTaskModel model)
     {
         if (!this.ModelState.IsValid)
         {
@@ -125,12 +132,12 @@ public class TodoTaskController : ControllerBase
 
         var taskDto = new TodoTask
         {
-            Id = id,
+            Id = taskId,
             Name = model.Name,
             Description = model.Description,
             DueDate = model.DueDate,
             IsCompleted = model.IsCompleted,
-            TodoListId = model.TodoListId,
+            TodoListId = todoListId
         };
 
         try
@@ -142,34 +149,35 @@ public class TodoTaskController : ControllerBase
         {
             return this.NotFound(new { message = ex.Message });
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
-            return this.Forbid(ex.Message);
+            return this.Forbid();
         }
     }
 
-    // DELETE: api/todotask/{id}
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    // DELETE: api/todolists/{todoListId}/tasks/{taskId}
+    [HttpDelete("{taskId}")]
+    public async Task<IActionResult> Delete(int todoListId, int taskId)
     {
         var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         try
         {
-            await this.taskService.DeleteTaskAsync(id, userId);
+            await this.taskService.DeleteTaskAsync(taskId, userId);
             return this.NoContent();
         }
         catch (KeyNotFoundException ex)
         {
             return this.NotFound(new { message = ex.Message });
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
-            return this.Forbid(ex.Message);
+            return this.Forbid();
         }
     }
 
-    [HttpGet("assigned")]
+    // GET: api/tasks/assigned
+    [HttpGet("~/api/tasks/assigned")]
     public async Task<IActionResult> GetAllAssigned([FromQuery] string? status = null, [FromQuery] string? sortby = null)
     {
         var user = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
@@ -184,7 +192,7 @@ public class TodoTaskController : ControllerBase
                 DueDate = t.DueDate,
                 IsCompleted = t.IsCompleted,
                 TodoListId = t.TodoListId,
-                AssignedUserId = user,
+                AssignedUserId = t.AssignedUserId
             });
             return this.Ok(models);
         }
@@ -194,23 +202,24 @@ public class TodoTaskController : ControllerBase
         }
     }
 
-    [HttpPatch("assigned/{id}/status")]
-    public async Task<IActionResult> ChangeTaskStatus(int id, [FromQuery] bool isCompleted)
+    // PATCH: api/tasks/assigned/{taskId}/status?isCompleted=true
+    [HttpPatch("~/api/tasks/assigned/{taskId}/status")]
+    public async Task<IActionResult> ChangeTaskStatus(int taskId, [FromQuery] bool isCompleted)
     {
         var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         try
         {
-            await this.taskService.UpdateTaskStatusAsync(id, isCompleted, userId);
-            return this.NoContent(); // 204 - success with no body
+            await this.taskService.UpdateTaskStatusAsync(taskId, isCompleted, userId);
+            return this.NoContent();
         }
         catch (KeyNotFoundException ex)
         {
             return this.NotFound(new { message = ex.Message });
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
-            return this.Forbid(ex.Message);
+            return this.Forbid();
         }
     }
 }

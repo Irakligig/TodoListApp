@@ -1,0 +1,69 @@
+@model IEnumerable<TodoListApp.WebApi.Models.TodoTaskModel>
+@{
+    ViewData["Title"] = "Assigned Tasks";
+
+    string status = ViewBag.Status as string ?? "";
+    string sortBy = ViewBag.SortBy as string ?? "";
+}
+
+<h2>Assigned Tasks</h2>
+
+<form method="get">
+    <label>Status:</label>
+    <select name="status">
+        <option value="">All</option>
+        <option value="Pending">Pending</option>
+        <option value="Completed">Completed</option>
+    </select>
+
+    <label>Sort by:</label>
+    <select name="sortBy">
+        <option value="">None</option>
+        <option value="Title">Title</option>
+        <option value="Status">Status</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary">Filter/Sort</button>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Due Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var task in Model)
+        {
+            var overdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
+            <tr class="@(overdue ? "table-danger" : "")">
+                <td>@task.Name</td>
+                <td>@(task.IsCompleted ? "Completed" : "Pending")</td>
+                <td>@task.DueDate?.ToString("yyyy-MM-dd")</td>
+                <td>
+                    @if (!task.IsCompleted)
+                    {
+                        <form asp-action="UpdateStatus" method="post" style="display:inline">
+                            <input type="hidden" name="id" value="@task.Id" />
+                            <input type="hidden" name="status" value="Completed" />
+                            <button type="submit" class="btn btn-sm btn-success">Mark Completed</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form asp-action="UpdateStatus" method="post" style="display:inline">
+                            <input type="hidden" name="id" value="@task.Id" />
+                            <input type="hidden" name="status" value="Pending" />
+                            <button type="submit" class="btn btn-sm btn-warning">Mark Pending</button>
+                        </form>
+                    }
+                </td>
+
+            </tr>
+        }
+    </tbody>
+
+</table>
