@@ -1,9 +1,9 @@
 @model IEnumerable<TodoListApp.WebApi.Models.TodoTaskModel>
 @{
     ViewData["Title"] = "Assigned Tasks";
-
     string status = ViewBag.Status as string ?? "";
     string sortBy = ViewBag.SortBy as string ?? "";
+    var users = ViewBag.Users as List<TodoListApp.WebApi.Models.TodoUserModel> ?? new List<TodoListApp.WebApi.Models.TodoUserModel>();
 }
 
 <h2>Assigned Tasks</h2>
@@ -26,13 +26,14 @@
     <button type="submit" class="btn btn-primary">Filter/Sort</button>
 </form>
 
-<table class="table">
+<table class="table mt-3">
     <thead>
         <tr>
             <th>Title</th>
             <th>Status</th>
             <th>Due Date</th>
             <th>Actions</th>
+            <th>Reassign</th>
         </tr>
     </thead>
     <tbody>
@@ -61,9 +62,26 @@
                         </form>
                     }
                 </td>
-
+                <td>
+                    <form asp-action="ReassignTask" method="post">
+                        <input type="hidden" name="taskId" value="@task.Id" />
+                        <select name="newUserId" class="form-select form-select-sm">
+                            @foreach (var user in users)
+                            {
+                                if (user.Id == task.AssignedUserId)
+                                {
+                                    <option value="@user.Id" selected="selected">@user.FullName</option>
+                                }
+                                else
+                                {
+                                    <option value="@user.Id">@user.FullName</option>
+                                }
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-info mt-1">Reassign</button>
+                    </form>
+                </td>
             </tr>
         }
     </tbody>
-
 </table>

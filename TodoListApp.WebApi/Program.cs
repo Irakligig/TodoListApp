@@ -12,9 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<TodoListDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("TodoListDb")));
 
+builder.Services.AddDbContext<UsersDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("UsersDb")));
+
+builder.Services.AddScoped<IUsersDatabaseService, TodoUsersDatabaseService>();
 builder.Services.AddScoped<ITodoListDatabaseService, TodoListDatabaseService>();
 builder.Services.AddScoped<ITodoTaskDatabaseService, TodoTaskDatabaseService>();
-
 builder.Services.AddControllers();
 
 // ===== JWT CONFIG =====

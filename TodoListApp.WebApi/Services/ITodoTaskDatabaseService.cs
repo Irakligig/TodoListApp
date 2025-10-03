@@ -17,4 +17,9 @@ public interface ITodoTaskDatabaseService
     Task<IEnumerable<TodoTask>> GetAssignedTasksAsync(string userId, string? status = null, string? sortby = null);
 
     Task UpdateTaskStatusAsync(int taskId, bool isCompleted, string userId);
+
+    Task<TodoTask?> GetTaskByIdForAssignedUserAsync(int taskId, string userId);
+
+    Task ReassignTaskAsync(int taskId, string currentUserId, string newUserId);
+
 }

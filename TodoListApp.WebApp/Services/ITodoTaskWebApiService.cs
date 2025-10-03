@@ -13,6 +13,8 @@ namespace TodoListApp.WebApp.Services
         // Epic 3: Assigned / filtered view
         Task<IEnumerable<TodoTaskModel>> GetAssignedAsync(string? status = null, string? sortBy = null);
         Task UpdateStatusAsync(int taskId, bool status);
+        Task ReassignTaskAsync(int taskId, string newUserId);
+        Task<List<TodoUserModel>> GetAllUsersAsync();
     }
 
 }

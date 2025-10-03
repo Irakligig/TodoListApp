@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using TodoListApp.WebApi.Models;
 using TodoListApp.WebApp.Services;
@@ -76,9 +77,13 @@ namespace TodoListApp.WebApp.Controllers
                 return NotFound();
             }
 
+            // Get all users for dropdown
+            ViewBag.Users = await _taskService.GetAllUsersAsync(); // Returns List<UserModel>
+
             ViewBag.ListId = task.TodoListId;
             return View(task);
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -112,6 +117,13 @@ namespace TodoListApp.WebApp.Controllers
             var tasks = await _taskService.GetAssignedAsync(status, sortBy);
             ViewBag.Status = status;
             ViewBag.SortBy = sortBy;
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            ViewBag.Users = (await _taskService.GetAllUsersAsync())
+                            .Where(u => u.Id != currentUserId)
+                            .ToList();
+
+
             return View(tasks);
         }
 
@@ -124,6 +136,45 @@ namespace TodoListApp.WebApp.Controllers
         {
             bool isCompleted = status == "Completed";
             await _taskService.UpdateStatusAsync(id, isCompleted);
+            return RedirectToAction(nameof(AssignedTasks));
+        }
+
+        // ======================
+        // Task Details
+        // ======================
+        public async Task<IActionResult> Details(int listId, int id)
+        {
+            var task = await _taskService.GetByIdAsync(listId, id);
+            if (task == null)
+            {
+                return NotFound();
+            }
+
+            ViewBag.ListId = listId;
+            return View(task);
+        }
+
+        // ======================
+        // Reassign Task
+        // ======================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReassignTask(int taskId, string newUserId)
+        {
+            try
+            {
+                await _taskService.ReassignTaskAsync(taskId, newUserId);
+                TempData["Success"] = "Task reassigned successfully";
+            }
+            catch (KeyNotFoundException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                TempData["Error"] = "You are not allowed to reassign this task.";
+            }
+
             return RedirectToAction(nameof(AssignedTasks));
         }
     }

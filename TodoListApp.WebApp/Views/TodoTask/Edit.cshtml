@@ -1,6 +1,8 @@
 @model TodoListApp.WebApi.Models.TodoTaskModel
+@using TodoListApp.WebApp.Services
 @{
     ViewData["Title"] = "Edit Task";
+    var users = ViewBag.Users as List<TodoListApp.WebApi.Models.TodoUserModel> ?? new List<TodoListApp.WebApi.Models.TodoUserModel>();
 }
 
 <h2>Edit Task</h2>
@@ -9,23 +11,49 @@
     <input type="hidden" asp-for="TodoListId" />
     <input type="hidden" asp-for="Id" />
 
-    <div class="form-group">
+    <div class="form-group mb-3">
         <label asp-for="Name"></label>
         <input asp-for="Name" class="form-control" />
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
 
-    <div class="form-group">
+    <div class="form-group mb-3">
         <label asp-for="Description"></label>
         <textarea asp-for="Description" class="form-control"></textarea>
         <span asp-validation-for="Description" class="text-danger"></span>
     </div>
 
-    <div class="form-group">
+    <div class="form-group mb-3">
         <label asp-for="IsCompleted"></label>
         <select asp-for="IsCompleted" class="form-control">
-            <option value="Pending">Pending</option>
-            <option value="Completed">Completed</option>
+            @if (Model.IsCompleted)
+            {
+                <option value="false">Pending</option>
+                <option value="true" selected>Completed</option>
+            }
+            else
+            {
+                <option value="false" selected>Pending</option>
+                <option value="true">Completed</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group mb-3">
+        <label>Assign To:</label>
+        <select asp-for="AssignedUserId" class="form-control">
+            <option value="">-- Select User --</option>
+            @foreach (var user in users)
+            {
+                if (Model.AssignedUserId == user.Id)
+                {
+                    <option value="@user.Id" selected>@user.FullName</option>
+                }
+                else
+                {
+                    <option value="@user.Id">@user.FullName</option>
+                }
+            }
         </select>
     </div>
 

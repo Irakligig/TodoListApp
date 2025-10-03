@@ -13,10 +13,11 @@ namespace TodoListApp.WebApi.Controllers;
 public class TodoTaskController : ControllerBase
 {
     private readonly ITodoTaskDatabaseService taskService;
-
-    public TodoTaskController(ITodoTaskDatabaseService taskService)
+    private readonly IUsersDatabaseService usersService;
+    public TodoTaskController(ITodoTaskDatabaseService taskService, IUsersDatabaseService usersService)
     {
         this.taskService = taskService;
+        this.usersService = usersService;
     }
 
     // GET: api/todolists/{todoListId}/tasks
@@ -25,30 +26,27 @@ public class TodoTaskController : ControllerBase
     {
         var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
-        try
-        {
-            var tasks = await this.taskService.GetAllTasksAsync(todoListId, userId);
-            var models = tasks.Select(t => new TodoTaskModel
-            {
-                Id = t.Id,
-                Name = t.Name,
-                Description = t.Description,
-                DueDate = t.DueDate,
-                IsCompleted = t.IsCompleted,
-                TodoListId = t.TodoListId,
-                AssignedUserId = t.AssignedUserId
-            });
+        var tasks = await this.taskService.GetAllTasksAsync(todoListId, userId);
 
-            return this.Ok(models);
-        }
-        catch (KeyNotFoundException ex)
+        // Map to models with user info
+        var models = new List<TodoTaskModel>();
+        foreach (var task in tasks)
         {
-            return this.NotFound(new { message = ex.Message });
+            var assignedUser = await usersService.GetByIdAsync(task.AssignedUserId);
+            models.Add(new TodoTaskModel
+            {
+                Id = task.Id,
+                Name = task.Name,
+                Description = task.Description,
+                DueDate = task.DueDate,
+                IsCompleted = task.IsCompleted,
+                TodoListId = task.TodoListId,
+                AssignedUserId = task.AssignedUserId,
+                // optional: AssignedUserName = assignedUser?.FullName ?? "Unknown"
+            });
         }
-        catch (UnauthorizedAccessException)
-        {
-            return this.Forbid();
-        }
+
+        return Ok(models);
     }
 
     // GET: api/todolists/{todoListId}/tasks/{taskId}
@@ -157,7 +155,7 @@ public class TodoTaskController : ControllerBase
 
     // DELETE: api/todolists/{todoListId}/tasks/{taskId}
     [HttpDelete("{taskId}")]
-    public async Task<IActionResult> Delete(int todoListId, int taskId)
+    public async Task<IActionResult> Delete(int taskId)
     {
         var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
@@ -178,12 +176,12 @@ public class TodoTaskController : ControllerBase
 
     // GET: api/tasks/assigned
     [HttpGet("~/api/tasks/assigned")]
-    public async Task<IActionResult> GetAllAssigned([FromQuery] string? status = null, [FromQuery] string? sortby = null)
+    public async Task<IActionResult> GetAllAssigned([FromQuery] string? status = null, [FromQuery] string? sortBy = null)
     {
         var user = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
         try
         {
-            var tasks = await this.taskService.GetAssignedTasksAsync(user, status, sortby);
+            var tasks = await this.taskService.GetAssignedTasksAsync(user, status, sortBy);
             var models = tasks.Select(t => new TodoTaskModel
             {
                 Id = t.Id,
@@ -192,7 +190,7 @@ public class TodoTaskController : ControllerBase
                 DueDate = t.DueDate,
                 IsCompleted = t.IsCompleted,
                 TodoListId = t.TodoListId,
-                AssignedUserId = t.AssignedUserId
+                AssignedUserId = t.AssignedUserId,
             });
             return this.Ok(models);
         }
@@ -222,4 +220,35 @@ public class TodoTaskController : ControllerBase
             return this.Forbid();
         }
     }
+
+    [HttpPatch("~/api/tasks/assigned/{taskId}/assign")]
+    public async Task<IActionResult> ReassignTask(int taskId, [FromBody] ReassignTaskDto dto)
+    {
+        var currentUserId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+
+        if (dto == null)
+        {
+            return BadRequest("DTO is null");
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.NewUserId))
+        {
+            return BadRequest("NewUserId is missing");
+        }
+
+        try
+        {
+            await this.taskService.ReassignTaskAsync(taskId, currentUserId, dto.NewUserId);
+            return Ok(new { message = "Task reassigned successfully" });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+    }
+
 }

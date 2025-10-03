@@ -23,7 +23,8 @@
                 <td>@task.Name</td>
                 <td>@task.IsCompleted</td>
                 <td>
-                    <a asp-action="Edit" asp-route-listId="@task.TodoListId" asp-route-id="@task.Id">Edit</a>
+                    <a asp-action="Details" asp-route-listId="@task.TodoListId" asp-route-id="@task.Id">Details</a> |
+                    <a asp-action="Edit" asp-route-listId="@task.TodoListId" asp-route-id="@task.Id">Edit</a> |
                     <form asp-action="Delete" method="post" style="display:inline">
                         <input type="hidden" name="listId" value="@task.TodoListId" />
                         <input type="hidden" name="id" value="@task.Id" />

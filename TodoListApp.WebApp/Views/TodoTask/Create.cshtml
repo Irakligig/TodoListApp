@@ -6,24 +6,40 @@
 <h2>Create Task</h2>
 
 <form asp-action="Create" method="post">
+    @* Anti-forgery token is required because controller uses [ValidateAntiForgeryToken] *@
+    @Html.AntiForgeryToken()
+
     <input type="hidden" asp-for="TodoListId" />
+
     <div class="form-group">
         <label asp-for="Name"></label>
         <input asp-for="Name" class="form-control" />
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
+
     <div class="form-group">
         <label asp-for="Description"></label>
         <textarea asp-for="Description" class="form-control"></textarea>
         <span asp-validation-for="Description" class="text-danger"></span>
     </div>
+
     <div class="form-group">
         <label asp-for="IsCompleted"></label>
+        @* Use actual boolean values for option values so model binder can parse them *@
         <select asp-for="IsCompleted" class="form-control">
-            <option value="Pending">Pending</option>
-            <option value="Completed">Completed</option>
+            <option value="false">Pending</option>
+            <option value="true">Completed</option>
         </select>
+        <span asp-validation-for="IsCompleted" class="text-danger"></span>
     </div>
+
     <button type="submit" class="btn btn-primary">Create</button>
     <a asp-action="Index" asp-route-listId="@Model.TodoListId" class="btn btn-secondary">Cancel</a>
 </form>
+
+@section Scripts {
+    @* Client-side validation helpers if you have them enabled *@
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

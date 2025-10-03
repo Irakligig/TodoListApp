@@ -150,5 +150,43 @@ namespace TodoListApp.WebApp.Services
             }
         }
 
+        public async Task ReassignTaskAsync(int taskId, string newUserId)
+        {
+            await EnsureTokenAsync();
+
+            var dto = new ReassignTaskDto { NewUserId = newUserId };
+
+            var request = new HttpRequestMessage(HttpMethod.Patch,
+                $"/api/tasks/assigned/{taskId}/assign")
+            {
+                Content = JsonContent.Create(dto)
+            };
+
+            var res = await http.SendAsync(request);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                var error = await res.Content.ReadAsStringAsync(); // get body from API
+                throw new HttpRequestException($"Reassign failed: {res.StatusCode}, Details: {error}");
+            }
+        }
+
+        public async Task<List<TodoUserModel>> GetAllUsersAsync()
+        {
+            await EnsureTokenAsync();
+
+            var res = await http.GetAsync("/api/users");
+
+            if (!res.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"Failed to fetch users: {res.StatusCode}");
+            }
+
+            // Deserialize into a list of UserModel
+            var users = await res.Content.ReadFromJsonAsync<List<TodoUserModel>>();
+
+            return users ?? new List<TodoUserModel>();
+        }
+
     }
 }
