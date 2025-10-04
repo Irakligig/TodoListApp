@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using TodoListApp.WebApi.Models;
 using TodoListApp.WebApp.Services;
@@ -15,7 +16,9 @@ namespace TodoListApp.WebApp.Controllers
 
         public async Task<IActionResult> Index()
         {
+            Console.WriteLine("Index hit!");
             var lists = await _todoListService.GetTodoListsAsync();
+            Console.WriteLine($"Got {lists.Count()} lists");
             return View(lists);
         }
 
@@ -25,11 +28,48 @@ namespace TodoListApp.WebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(TodoListModel list)
         {
+            // Remove OwnerId from ModelState entirely before validation
+            ModelState.Remove("OwnerId");
+
+            Console.WriteLine($"ModelState IsValid: {ModelState.IsValid}");
+
             if (ModelState.IsValid)
             {
-                await _todoListService.AddTodoListAsync(list);
-                return RedirectToAction(nameof(Index));
+                try
+                {
+                    // Assign the current logged-in user as the owner
+                    list.OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+                    Console.WriteLine($"Creating todo list for user: {list.OwnerId}");
+
+                    await _todoListService.AddTodoListAsync(list);
+                    Console.WriteLine("Todo list created successfully, redirecting to Index");
+
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (HttpRequestException ex)
+                {
+                    Console.WriteLine($"HTTP Error creating todo list: {ex.Message}");
+                    ModelState.AddModelError("", $"Error creating todo list: {ex.Message}");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Console.WriteLine($"Invalid operation error: {ex.Message}");
+                    ModelState.AddModelError("", $"Error creating todo list: {ex.Message}");
+                }
             }
+            else
+            {
+                Console.WriteLine("ModelState errors:");
+                foreach (var key in ModelState.Keys)
+                {
+                    var state = ModelState[key];
+                    foreach (var error in state.Errors)
+                    {
+                        Console.WriteLine($" - {key}: {error.ErrorMessage}");
+                    }
+                }
+            }
+
             return View(list);
         }
 

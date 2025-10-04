@@ -122,11 +122,11 @@ namespace TodoListApp.WebApp.Services
 
             if (!string.IsNullOrWhiteSpace(sortBy))
             {
-                q.Add($"sortby={Uri.EscapeDataString(sortBy)}"); // <-- fixed typo
+                // Change to lowercase "sortby" to match API parameter
+                q.Add($"sortby={Uri.EscapeDataString(sortBy.ToLower())}"); // Also convert value to lowercase
             }
 
             var qs = q.Count > 0 ? "?" + string.Join("&", q) : string.Empty;
-
             var res = await http.GetAsync($"/api/tasks/assigned{qs}");
 
             if (res.StatusCode == HttpStatusCode.BadRequest)

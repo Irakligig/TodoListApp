@@ -52,8 +52,26 @@ namespace TodoListApp.WebApp.Services
         public async Task AddTodoListAsync(TodoListModel newList)
         {
             await EnsureTokenAsync();
-            var res = await _http.PostAsJsonAsync("/api/todolist", newList);
-            res.EnsureSuccessStatusCode();
+
+            try
+            {
+                var response = await _http.PostAsJsonAsync("/api/todolist", newList);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return; // Success
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    throw new HttpRequestException($"API returned {response.StatusCode}: {errorContent}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"HTTP Request failed: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task UpdateTodoListAsync(TodoListModel updatedList)

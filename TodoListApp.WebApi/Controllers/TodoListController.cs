@@ -24,12 +24,14 @@ public class TodoListController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+        Console.WriteLine($"Current ownerId: {userId}");
+
         var lists = await this.todoListService.GetAllTodoListsAsync(userId);
 
-        if (!lists.Any()) // check if empty
-        {
-            return this.NotFound(new { message = "No todo lists found." });
-        }
+        //if (!lists.Any()) // check if empty
+        //{
+        //    return this.NotFound(new { message = "No todo lists found." });
+        //}
 
         // Map DTO to model for returning
         var models = lists.Select(t => new TodoListModel
@@ -37,6 +39,7 @@ public class TodoListController : ControllerBase
             Id = t.Id,
             Name = t.Name,
             Description = t.Description,
+            OwnerId = t.OwnerId,
         });
 
         return this.Ok(models);
@@ -44,7 +47,7 @@ public class TodoListController : ControllerBase
 
     // POST: api/todolist
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] TodoListModel model)
+    public async Task<IActionResult> Create(TodoListModel model)
     {
         if (!this.ModelState.IsValid)
         {
@@ -57,13 +60,14 @@ public class TodoListController : ControllerBase
         {
             Name = model.Name,
             Description = model.Description,
+            OwnerId = model.OwnerId,
         };
 
         try
         {
             await this.todoListService.AddTodoListAsync(todoListDto, userId);
             model.Id = todoListDto.Id; // get generated Id
-            return this.CreatedAtAction(nameof(this.GetAll), new { id = model.Id }, model);
+            return this.Ok(new { id = model.Id, message = "Todo list created successfully" });
         }
         catch (ArgumentException ex)
         {
@@ -98,7 +102,8 @@ public class TodoListController : ControllerBase
             {
                 Id = todoListDto.Id,
                 Name = todoListDto.Name,
-                Description = todoListDto.Description
+                Description = todoListDto.Description,
+                OwnerId = todoListDto.OwnerId,
             });
         }
         catch (KeyNotFoundException ex)

@@ -37,6 +37,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             .AsNoTracking()
             .IgnoreQueryFilters()
             .Where(t => t.TodoListId == todoListId)
+            .Where(t => t.AssignedUserId == ownerId)
             .Select(t => new TodoTask()
             {
                 // Data mapping (projection) must be complete to avoid ID=0
@@ -149,7 +150,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
         _ = await this.context.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<TodoTask>> GetAssignedTasksAsync(string userId, string? status = null, string? sortby = null)
+    public async Task<IEnumerable<TodoTask>> GetAssignedTasksAsync(string userId, string? status = null, string? sortby = null) // Changed to sortBy
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -179,22 +180,25 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             }
         }
 
-        // Apply sorting
-        if (!string.IsNullOrWhiteSpace(sortby))
+        // Apply sorting - use sortBy instead of sortby
+        if (!string.IsNullOrWhiteSpace(sortBy))
         {
-            query = sortby.ToLower() switch
+            query = sortBy.ToLower() switch
             {
-                "duedate" => query.OrderBy(t => t.DueDate),
-                "name" => query.OrderBy(t => t.Name),
+                "duedate" => query.OrderBy(t => t.DueDate.HasValue).ThenBy(t => t.DueDate),
+                "duedate_desc" => query.OrderByDescending(t => t.DueDate.HasValue).ThenByDescending(t => t.DueDate),
+                "name" or "title" => query.OrderBy(t => t.Name),
+                "name_desc" or "title_desc" => query.OrderByDescending(t => t.Name),
+                "status" => query.OrderBy(t => t.IsCompleted), // Sort by completion status
+                "status_desc" => query.OrderByDescending(t => t.IsCompleted),
                 _ => query.OrderBy(t => t.Id)
             };
         }
         else
         {
-            query = query.OrderBy(t => t.Id); // Default order
+            query = query.OrderBy(t => t.Id);
         }
 
-        // Project to TodoTask model
         return await query.Select(t => new TodoTask
         {
             Id = t.Id,
