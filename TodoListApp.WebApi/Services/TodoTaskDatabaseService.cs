@@ -95,7 +95,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
         {
             Name = task.Name,
             Description = task.Description,
-            DueDate = task.DueDate ?? DateTime.MinValue,
+            DueDate = task.DueDate,
             IsCompleted = task.IsCompleted,
             TodoListId = task.TodoListId,
             OwnerId = ownerId,
@@ -181,23 +181,25 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
         }
 
         // Apply sorting - use sortBy instead of sortby
-        if (!string.IsNullOrWhiteSpace(sortBy))
-        {
-            query = sortBy.ToLower() switch
-            {
-                "duedate" => query.OrderBy(t => t.DueDate.HasValue).ThenBy(t => t.DueDate),
-                "duedate_desc" => query.OrderByDescending(t => t.DueDate.HasValue).ThenByDescending(t => t.DueDate),
-                "name" or "title" => query.OrderBy(t => t.Name),
-                "name_desc" or "title_desc" => query.OrderByDescending(t => t.Name),
-                "status" => query.OrderBy(t => t.IsCompleted), // Sort by completion status
-                "status_desc" => query.OrderByDescending(t => t.IsCompleted),
-                _ => query.OrderBy(t => t.Id)
-            };
-        }
-        else
-        {
-            query = query.OrderBy(t => t.Id);
-        }
+
+        // NOT WORKING YET
+        //if (!string.IsNullOrWhiteSpace(sortby))
+        //{
+        //    query = sortBy.ToLower() switch
+        //    {
+        //        "duedate" => query.OrderBy(t => t.DueDate.HasValue).ThenBy(t => t.DueDate),
+        //        "duedate_desc" => query.OrderByDescending(t => t.DueDate.HasValue).ThenByDescending(t => t.DueDate),
+        //        "name" or "title" => query.OrderBy(t => t.Name),
+        //        "name_desc" or "title_desc" => query.OrderByDescending(t => t.Name),
+        //        "status" => query.OrderBy(t => t.IsCompleted), // Sort by completion status
+        //        "status_desc" => query.OrderByDescending(t => t.IsCompleted),
+        //        _ => query.OrderBy(t => t.Id)
+        //    };
+        //}
+        //else
+        //{
+        //    query = query.OrderBy(t => t.Id);
+        //}
 
         return await query.Select(t => new TodoTask
         {
@@ -283,5 +285,49 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
         await this.context.SaveChangesAsync();
     }
 
+    public async Task<IEnumerable<TodoTask>> SearchTasksAsync(
+    string userId,
+    string? query,
+    bool? status,
+    DateTime? dueBefore,
+    string? assignedUserId)
+    {
+        var tasks = context.TodoTasks
+            .Include(t => t.TodoList)
+            .Where(t => t.TodoList.OwnerId == userId);
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            tasks = tasks.Where(t =>
+                t.Name.Contains(query) || (t.Description ?? "").Contains(query));
+        }
+
+        tasks = tasks.Where(t => t.IsCompleted == status);
+
+        if (dueBefore.HasValue)
+        {
+            tasks = tasks.Where(t => t.DueDate <= dueBefore.Value);
+        }
+
+        if (!string.IsNullOrEmpty(assignedUserId))
+        {
+            tasks = tasks.Where(t => t.AssignedUserId == assignedUserId);
+        }
+
+        var result = await tasks.AsNoTracking()
+            .Select(t => new TodoTask
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Description = t.Description,
+                IsCompleted = t.IsCompleted,
+                DueDate = t.DueDate,
+                TodoListId = t.TodoListId,
+                AssignedUserId = t.AssignedUserId
+            })
+            .ToListAsync();
+
+        return result;
+    }
 
 }

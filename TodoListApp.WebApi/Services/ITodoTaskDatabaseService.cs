@@ -22,4 +22,12 @@ public interface ITodoTaskDatabaseService
 
     Task ReassignTaskAsync(int taskId, string currentUserId, string newUserId);
 
+    Task<IEnumerable<TodoTask>> SearchTasksAsync(
+    string userId,
+    string? query,
+    bool? status,
+    DateTime? dueBefore,
+    string? assignedUserId);
+
+
 }

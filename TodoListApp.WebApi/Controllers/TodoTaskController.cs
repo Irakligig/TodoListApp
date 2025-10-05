@@ -251,4 +251,21 @@ public class TodoTaskController : ControllerBase
         }
     }
 
+    // GET: api/tasks/search
+    [HttpGet("~/api/tasks/search")]
+    public async Task<IActionResult> Search(
+        [FromQuery] string? query = null,
+        [FromQuery] bool? status = null,
+        [FromQuery] DateTime? dueBefore = null,
+        [FromQuery] string? assignedUserId = null)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+
+        var results = await this.taskService.SearchTasksAsync(userId, query, status, dueBefore, assignedUserId);
+
+        return Ok(results);
+    }
+
+
+
 }
