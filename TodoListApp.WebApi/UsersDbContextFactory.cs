@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
 using TodoListApp.Services.Database; // where UsersDbContext lives
 
 namespace TodoListApp.WebApi
@@ -18,7 +17,7 @@ namespace TodoListApp.WebApi
             var optionsBuilder = new DbContextOptionsBuilder<UsersDbContext>();
             var connectionString = configuration.GetConnectionString("UsersDb");
 
-            optionsBuilder.UseSqlServer(connectionString, b => b.MigrationsAssembly("TodoListApp.Services.Database"));
+            _ = optionsBuilder.UseSqlServer(connectionString, b => b.MigrationsAssembly("TodoListApp.Services.Database"));
 
             return new UsersDbContext(optionsBuilder.Options);
         }

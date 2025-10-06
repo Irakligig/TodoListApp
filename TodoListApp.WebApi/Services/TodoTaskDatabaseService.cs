@@ -1,6 +1,4 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using TodoListApp.Services.Database;
 using TodoListApp.Services.Database.Entities;
 using TodoListApp.WebApi.Data;
@@ -36,6 +34,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
         {
             throw new UnauthorizedAccessException("You do not have access to this todo list.");
         }
+
         return await this.context.TodoTasks
             .AsNoTracking()
             .IgnoreQueryFilters()
@@ -212,11 +211,9 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             DueDate = t.DueDate,
             IsCompleted = t.IsCompleted,
             TodoListId = t.TodoListId,
-            AssignedUserId = t.AssignedUserId
+            AssignedUserId = t.AssignedUserId,
         }).ToListAsync();
     }
-
-
 
     public async Task UpdateTaskStatusAsync(int taskId, bool isCompleted, string userId)
     {
@@ -254,7 +251,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             DueDate = task.DueDate,
             IsCompleted = task.IsCompleted,
             TodoListId = task.TodoListId,
-            AssignedUserId = task.AssignedUserId
+            AssignedUserId = task.AssignedUserId,
         };
     }
 
@@ -285,7 +282,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
 
         // 4. Update assignment
         task.AssignedUserId = newUserId;
-        await this.context.SaveChangesAsync();
+        _ = await this.context.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<TodoTask>> SearchTasksAsync(
@@ -337,7 +334,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
                 IsCompleted = t.IsCompleted,
                 DueDate = t.DueDate,
                 TodoListId = t.TodoListId,
-                AssignedUserId = t.AssignedUserId
+                AssignedUserId = t.AssignedUserId,
             })
             .ToListAsync();
 

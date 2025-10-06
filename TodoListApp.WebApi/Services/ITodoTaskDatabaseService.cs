@@ -28,6 +28,4 @@ public interface ITodoTaskDatabaseService
     bool? status,
     DateTime? dueBefore,
     string? assignedUserId);
-
-
 }

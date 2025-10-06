@@ -18,7 +18,7 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
     // ---------------- Add Tag ----------------
     public async Task AddTagToTaskAsync(int taskId, string tagName, string userId)
     {
-        var task = await context.TodoTasks
+        var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
             .Include(t => t.TodoList)
@@ -31,14 +31,14 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
         }
 
         var normalizedTagName = tagName.ToLower();
-        var tag = await context.TodoTags
+        var tag = await this.context.TodoTags
             .FirstOrDefaultAsync(t => t.Name.ToLower() == normalizedTagName);
 
         if (tag == null)
         {
             tag = new TodoTagEntity { Name = tagName };
-            await context.TodoTags.AddAsync(tag);
-            await context.SaveChangesAsync();
+            _ = await this.context.TodoTags.AddAsync(tag);
+            _ = await this.context.SaveChangesAsync();
         }
 
         if (!task.TaskTags.Any(tt => tt.TagId == tag.Id))
@@ -46,16 +46,16 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
             task.TaskTags.Add(new TodoTaskTagEntity
             {
                 TodoTaskId = taskId,
-                TagId = tag.Id
+                TagId = tag.Id,
             });
-            await context.SaveChangesAsync();
+            _ = await this.context.SaveChangesAsync();
         }
     }
 
     // ---------------- Remove Tag ----------------
     public async Task RemoveTagFromTaskAsync(int taskId, string tagName, string userId)
     {
-        var task = await context.TodoTasks
+        var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
             .Include(t => t.TodoList)
@@ -74,15 +74,15 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
         var taskTag = task.TaskTags.FirstOrDefault(tt => tt.Tag.Name == tagName);
         if (taskTag != null)
         {
-            task.TaskTags.Remove(taskTag);
-            await context.SaveChangesAsync();
+            _ = task.TaskTags.Remove(taskTag);
+            _ = await this.context.SaveChangesAsync();
         }
     }
 
     // ---------------- Get Task With Tags ----------------
     public async Task<TaskWithTagsViewModel> GetTaskWithTagsAsync(int taskId, string userId)
     {
-        var task = await context.TodoTasks
+        var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
             .Include(t => t.TodoList)
@@ -110,7 +110,7 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
     // ---------------- Get All Tags ----------------
     public async Task<List<string>> GetAllTagsAsync(string userId)
     {
-        var tags = await context.TodoTaskTags
+        var tags = await this.context.TodoTaskTags
             .Include(tt => tt.TodoTask)
             .ThenInclude(t => t.TodoList)
             .Where(tt => tt.TodoTask.TodoList.OwnerId == userId || tt.TodoTask.AssignedUserId == userId)
@@ -124,7 +124,7 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
     // ---------------- Get Tasks By Tag ----------------
     public async Task<IEnumerable<TodoTask>> GetTasksByTagAsync(string userId, string tagName)
     {
-        var tasks = await context.TodoTaskTags
+        var tasks = await this.context.TodoTaskTags
             .Include(tt => tt.TodoTask)
             .ThenInclude(t => t.TodoList)
             .Where(tt => tt.Tag.Name == tagName &&
@@ -140,13 +140,13 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
             DueDate = t.DueDate,
             IsCompleted = t.IsCompleted,
             TodoListId = t.TodoListId,
-            AssignedUserId = t.AssignedUserId
+            AssignedUserId = t.AssignedUserId,
         });
     }
 
     public async Task<List<string>> GetTagsForTaskAsync(int taskId, string userId)
     {
-        var task = await context.TodoTasks
+        var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
             .FirstOrDefaultAsync(t => t.Id == taskId &&

@@ -6,20 +6,20 @@ namespace TodoListApp.WebApi.Services;
 
 public class TodoUsersDatabaseService : IUsersDatabaseService
 {
-    private readonly UsersDbContext _context;
+    private readonly UsersDbContext context;
 
     public TodoUsersDatabaseService(UsersDbContext context)
     {
-        _context = context;
+        this.context = context;
     }
 
     public async Task<User?> GetByIdAsync(string id)
     {
-        return await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+        return await this.context.Users.FirstOrDefaultAsync(u => u.Id == id);
     }
 
     public async Task<IEnumerable<User>> GetAllAsync()
     {
-        return await _context.Users.ToListAsync();
+        return await this.context.Users.ToListAsync();
     }
 }

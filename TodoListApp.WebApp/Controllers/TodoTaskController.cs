@@ -7,11 +7,11 @@ namespace TodoListApp.WebApp.Controllers
 {
     public class TodoTaskController : Controller
     {
-        private readonly ITodoTaskWebApiService _taskService;
+        private readonly ITodoTaskWebApiService taskService;
 
         public TodoTaskController(ITodoTaskWebApiService taskService)
         {
-            _taskService = taskService;
+            this.taskService = taskService;
         }
 
         // ======================
@@ -21,24 +21,24 @@ namespace TodoListApp.WebApp.Controllers
         {
             try
             {
-                var tasks = await _taskService.GetTasksAsync(listId);
-                ViewBag.ListId = listId;
-                return View(tasks);
+                var tasks = await this.taskService.GetTasksAsync(listId).ConfigureAwait(false);
+                this.ViewBag.ListId = listId;
+                return this.View(tasks);
             }
             catch (KeyNotFoundException ex)
             {
-                TempData["Error"] = ex.Message;
-                return RedirectToAction("Index", "TodoList");
+                this.TempData["Error"] = ex.Message;
+                return this.RedirectToAction("Index", "TodoList");
             }
             catch (System.Security.SecurityException ex)
             {
-                TempData["Error"] = ex.Message;
-                return RedirectToAction("Index", "TodoList");
+                this.TempData["Error"] = ex.Message;
+                return this.RedirectToAction("Index", "TodoList");
             }
             catch (HttpRequestException ex)
             {
-                TempData["Error"] = $"API error: {ex.Message}";
-                return RedirectToAction("Index", "TodoList");
+                this.TempData["Error"] = $"API error: {ex.Message}";
+                return this.RedirectToAction("Index", "TodoList");
             }
         }
 
@@ -47,23 +47,23 @@ namespace TodoListApp.WebApp.Controllers
         // ======================
         public IActionResult Create(int listId)
         {
-            ViewBag.ListId = listId;
+            this.ViewBag.ListId = listId;
             var model = new TodoTaskModel { TodoListId = listId };
-            return View(model);
+            return this.View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(TodoTaskModel task)
         {
-            if (!ModelState.IsValid)
+            if (!this.ModelState.IsValid)
             {
-                ViewBag.ListId = task.TodoListId;
-                return View(task);
+                this.ViewBag.ListId = task.TodoListId;
+                return this.View(task);
             }
 
-            await _taskService.CreateAsync(task.TodoListId, task);
-            return RedirectToAction("Index", new { listId = task.TodoListId });
+            _ = await this.taskService.CreateAsync(task.TodoListId, task).ConfigureAwait(false);
+            return this.RedirectToAction("Index", new { listId = task.TodoListId });
         }
 
         // ======================
@@ -71,19 +71,18 @@ namespace TodoListApp.WebApp.Controllers
         // ======================
         public async Task<IActionResult> Edit(int listId, int id)
         {
-            var task = await _taskService.GetByIdAsync(listId, id);
+            var task = await this.taskService.GetByIdAsync(listId, id).ConfigureAwait(false);
             if (task == null)
             {
-                return NotFound();
+                return this.NotFound();
             }
 
             // Get all users for dropdown
-            ViewBag.Users = await _taskService.GetAllUsersAsync(); // Returns List<UserModel>
+            this.ViewBag.Users = await this.taskService.GetAllUsersAsync().ConfigureAwait(false); // Returns List<UserModel>
 
-            ViewBag.ListId = task.TodoListId;
-            return View(task);
+            this.ViewBag.ListId = task.TodoListId;
+            return this.View(task);
         }
-
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -91,16 +90,16 @@ namespace TodoListApp.WebApp.Controllers
         {
             Console.WriteLine($"POST Edit: Id={task.Id}, ListId={task.TodoListId}, Name={task.Name}");
 
-            if (!ModelState.IsValid)
+            if (!this.ModelState.IsValid)
             {
                 Console.WriteLine("ModelState invalid!");
-                return View(task);
+                return this.View(task);
             }
 
             try
             {
                 Console.WriteLine("Before UpdateAsync");
-                await _taskService.UpdateAsync(task.TodoListId, task.Id, task);
+                await this.taskService.UpdateAsync(task.TodoListId, task.Id, task).ConfigureAwait(false);
                 Console.WriteLine("After UpdateAsync");
             }
             catch (Exception ex)
@@ -109,9 +108,8 @@ namespace TodoListApp.WebApp.Controllers
                 throw;
             }
 
-            return RedirectToAction("Index", new { listId = task.TodoListId });
+            return this.RedirectToAction("Index", new { listId = task.TodoListId });
         }
-
 
         // ======================
         // Delete Task
@@ -120,8 +118,8 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int listId, int id)
         {
-            await _taskService.DeleteAsync(listId, id);
-            return RedirectToAction("Index", new { listId });
+            await this.taskService.DeleteAsync(listId, id).ConfigureAwait(false);
+            return this.RedirectToAction("Index", new { listId });
         }
 
         // ======================
@@ -129,17 +127,16 @@ namespace TodoListApp.WebApp.Controllers
         // ======================
         public async Task<IActionResult> AssignedTasks(string? status, string? sortBy)
         {
-            var tasks = await _taskService.GetAssignedAsync(status, sortBy);
-            ViewBag.Status = status;
-            ViewBag.SortBy = sortBy;
+            var tasks = await this.taskService.GetAssignedAsync(status, sortBy).ConfigureAwait(false);
+            this.ViewBag.Status = status;
+            this.ViewBag.SortBy = sortBy;
 
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            ViewBag.Users = (await _taskService.GetAllUsersAsync())
+            var currentUserId = this.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            this.ViewBag.Users = (await this.taskService.GetAllUsersAsync().ConfigureAwait(false))
                             .Where(u => u.Id != currentUserId)
                             .ToList();
 
-
-            return View(tasks);
+            return this.View(tasks);
         }
 
         // ======================
@@ -150,8 +147,8 @@ namespace TodoListApp.WebApp.Controllers
         public async Task<IActionResult> UpdateStatus(int id, string status)
         {
             bool isCompleted = status == "Completed";
-            await _taskService.UpdateStatusAsync(id, isCompleted);
-            return RedirectToAction(nameof(AssignedTasks));
+            await this.taskService.UpdateStatusAsync(id, isCompleted).ConfigureAwait(false);
+            return this.RedirectToAction(nameof(this.AssignedTasks));
         }
 
         // ======================
@@ -159,15 +156,15 @@ namespace TodoListApp.WebApp.Controllers
         // ======================
         public async Task<IActionResult> Details(int listId, int id)
         {
-            var task = await _taskService.GetByIdAsync(listId, id);
+            var task = await this.taskService.GetByIdAsync(listId, id).ConfigureAwait(false);
             if (task == null)
             {
-                return NotFound();
+                return this.NotFound();
             }
 
             // Fetch tags for this task
-            var tagService = HttpContext.RequestServices.GetRequiredService<ITodoTaskTagWebApiService>();
-            var tags = await tagService.GetTagsForTaskAsync(id);
+            var tagService = this.HttpContext.RequestServices.GetRequiredService<ITodoTaskTagWebApiService>();
+            var tags = await tagService.GetTagsForTaskAsync(id).ConfigureAwait(false);
 
             // Use TaskWithTagsViewModel
             var model = new TaskWithTagsViewModel
@@ -180,11 +177,11 @@ namespace TodoListApp.WebApp.Controllers
                 TodoListId = task.TodoListId,
                 AssignedUserId = task.AssignedUserId,
                 Tags = tags,
-                NewTag = string.Empty // For adding new tag
+                NewTag = string.Empty, // For adding new tag
             };
 
-            ViewBag.ListId = listId;
-            return View(model);
+            this.ViewBag.ListId = listId;
+            return this.View(model);
         }
 
         // ======================
@@ -196,19 +193,19 @@ namespace TodoListApp.WebApp.Controllers
         {
             try
             {
-                await _taskService.ReassignTaskAsync(taskId, newUserId);
-                TempData["Success"] = "Task reassigned successfully";
+                await this.taskService.ReassignTaskAsync(taskId, newUserId).ConfigureAwait(false);
+                this.TempData["Success"] = "Task reassigned successfully";
             }
             catch (KeyNotFoundException ex)
             {
-                TempData["Error"] = ex.Message;
+                this.TempData["Error"] = ex.Message;
             }
             catch (UnauthorizedAccessException)
             {
-                TempData["Error"] = "You are not allowed to reassign this task.";
+                this.TempData["Error"] = "You are not allowed to reassign this task.";
             }
 
-            return RedirectToAction(nameof(AssignedTasks));
+            return this.RedirectToAction(nameof(this.AssignedTasks));
         }
     }
 }

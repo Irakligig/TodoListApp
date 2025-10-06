@@ -28,11 +28,6 @@ public class TodoListController : ControllerBase
 
         var lists = await this.todoListService.GetAllTodoListsAsync(userId);
 
-        //if (!lists.Any()) // check if empty
-        //{
-        //    return this.NotFound(new { message = "No todo lists found." });
-        //}
-
         // Map DTO to model for returning
         var models = lists.Select(t => new TodoListModel
         {
@@ -79,7 +74,7 @@ public class TodoListController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] TodoListModel model)
     {
-        ModelState.Remove("OwnerId");
+        _ = this.ModelState.Remove("OwnerId");
         if (!this.ModelState.IsValid)
         {
             return this.BadRequest(this.ModelState);

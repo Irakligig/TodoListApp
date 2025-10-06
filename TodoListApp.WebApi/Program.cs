@@ -47,7 +47,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtIssuer,
         ValidAudience = jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
     };
 });
 
@@ -63,7 +63,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\""
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -74,11 +74,11 @@ builder.Services.AddSwaggerGen(c =>
                 Reference = new OpenApiReference
                 {
                     Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                    Id = "Bearer",
+                },
             },
-            new string[]{}
-        }
+            Array.Empty<string>()
+        },
     });
 });
 
@@ -119,15 +119,15 @@ app.MapGet("/api/token", () =>
         Subject = new System.Security.Claims.ClaimsIdentity(new[]
         {
             new System.Security.Claims.Claim("sub", "dev-user"),
-            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "dev-user")
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "dev-user"),
         }),
         Expires = DateTime.UtcNow.AddHours(1),
         Issuer = jwtIssuer,
         Audience = jwtAudience,
-        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
     };
     var token = tokenHandler.CreateToken(tokenDescriptor);
     return Results.Ok(new { token = tokenHandler.WriteToken(token) });
 });
 
-app.Run();
+await app.RunAsync();

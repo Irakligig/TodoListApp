@@ -38,7 +38,6 @@ namespace TodoListApp.Services.Database
                 .HasOne(tt => tt.Tag) // from todotasktagperspective
                 .WithMany(t => t.TaskTags) // from todotagperspective
                 .HasForeignKey(tt => tt.TagId);
-
         }
     }
 }

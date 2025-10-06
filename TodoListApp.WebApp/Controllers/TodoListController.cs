@@ -7,62 +7,65 @@ namespace TodoListApp.WebApp.Controllers
 {
     public class TodoListController : Controller
     {
-        private readonly ITodoListWebApiService _todoListService;
+        private readonly ITodoListWebApiService todoListService;
 
         public TodoListController(ITodoListWebApiService todoListService)
         {
-            _todoListService = todoListService;
+            this.todoListService = todoListService;
         }
 
         public async Task<IActionResult> Index()
         {
             Console.WriteLine("Index hit!");
-            var lists = await _todoListService.GetTodoListsAsync();
+            var lists = await this.todoListService.GetTodoListsAsync().ConfigureAwait(false);
             Console.WriteLine($"Got {lists.Count()} lists");
-            return View(lists);
+            return this.View(lists);
         }
 
         [HttpGet]
-        public IActionResult Create() => View();
+        public IActionResult Create()
+        {
+            return this.View();
+        }
 
         [HttpPost]
         public async Task<IActionResult> Create(TodoListModel list)
         {
             // Remove OwnerId from ModelState entirely before validation
-            ModelState.Remove("OwnerId");
+            _ = this.ModelState.Remove(nameof(TodoListModel.OwnerId));
 
             Console.WriteLine($"ModelState IsValid: {ModelState.IsValid}");
 
-            if (ModelState.IsValid)
+            if (this.ModelState.IsValid)
             {
                 try
                 {
                     // Assign the current logged-in user as the owner
-                    list.OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+                    list.OwnerId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
                     Console.WriteLine($"Creating todo list for user: {list.OwnerId}");
 
-                    await _todoListService.AddTodoListAsync(list);
+                    await this.todoListService.AddTodoListAsync(list).ConfigureAwait(false);
                     Console.WriteLine("Todo list created successfully, redirecting to Index");
 
-                    return RedirectToAction(nameof(Index));
+                    return this.RedirectToAction(nameof(this.Index));
                 }
                 catch (HttpRequestException ex)
                 {
                     Console.WriteLine($"HTTP Error creating todo list: {ex.Message}");
-                    ModelState.AddModelError("", $"Error creating todo list: {ex.Message}");
+                    this.ModelState.AddModelError(string.Empty, $"Error creating todo list: {ex.Message}");
                 }
                 catch (InvalidOperationException ex)
                 {
                     Console.WriteLine($"Invalid operation error: {ex.Message}");
-                    ModelState.AddModelError("", $"Error creating todo list: {ex.Message}");
+                    this.ModelState.AddModelError(string.Empty, $"Error creating todo list: {ex.Message}");
                 }
             }
             else
             {
                 Console.WriteLine("ModelState errors:");
-                foreach (var key in ModelState.Keys)
+                foreach (var key in this.ModelState.Keys)
                 {
-                    var state = ModelState[key];
+                    var state = this.ModelState[key];
                     foreach (var error in state.Errors)
                     {
                         Console.WriteLine($" - {key}: {error.ErrorMessage}");
@@ -70,40 +73,42 @@ namespace TodoListApp.WebApp.Controllers
                 }
             }
 
-            return View(list);
+            return this.View(list);
         }
 
         // US03: Delete
         public async Task<IActionResult> Delete(int id)
         {
-            await _todoListService.DeleteTodoListAsync(id);
-            return RedirectToAction(nameof(Index));
+            await this.todoListService.DeleteTodoListAsync(id).ConfigureAwait(false);
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         // US04: Update
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var lists = await _todoListService.GetTodoListsAsync();
+            var lists = await this.todoListService.GetTodoListsAsync().ConfigureAwait(false);
             var list = lists.FirstOrDefault(x => x.Id == id);
             if (list == null)
             {
-                return NotFound();
+                return this.NotFound();
             }
-            return View(list);
+
+            return this.View(list);
         }
 
         [HttpPost]
         public async Task<IActionResult> Edit(TodoListModel list)
         {
-            ModelState.Remove("OwnerId");
+            _ = this.ModelState.Remove(nameof(TodoListModel.OwnerId));
 
-            if (ModelState.IsValid)
+            if (this.ModelState.IsValid)
             {
-                await _todoListService.UpdateTodoListAsync(list);
-                return RedirectToAction(nameof(Index));
+                await this.todoListService.UpdateTodoListAsync(list).ConfigureAwait(false);
+                return this.RedirectToAction(nameof(this.Index));
             }
-            return View(list);
+
+            return this.View(list);
         }
     }
 }

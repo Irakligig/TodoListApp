@@ -10,11 +10,13 @@ namespace TodoListApp.WebApi.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/todolists/{todoListId}/tasks")]
+#pragma warning disable S6960 // Controllers should not have mixed responsibilities but it was design choice so i suppress this warning
 public class TodoTaskController : ControllerBase
 {
     private readonly ITodoTaskDatabaseService taskService;
     private readonly IUsersDatabaseService usersService;
     private readonly ITodoTaskTagDatabaseService tagService;
+
     public TodoTaskController(ITodoTaskDatabaseService taskService, IUsersDatabaseService usersService, ITodoTaskTagDatabaseService tagService)
     {
         this.taskService = taskService;
@@ -34,7 +36,7 @@ public class TodoTaskController : ControllerBase
         var models = new List<TodoTaskModel>();
         foreach (var task in tasks)
         {
-            var assignedUser = await usersService.GetByIdAsync(task.AssignedUserId);
+            _ = await this.usersService.GetByIdAsync(task.AssignedUserId);
             models.Add(new TodoTaskModel
             {
                 Id = task.Id,
@@ -44,11 +46,12 @@ public class TodoTaskController : ControllerBase
                 IsCompleted = task.IsCompleted,
                 TodoListId = task.TodoListId,
                 AssignedUserId = task.AssignedUserId,
+
                 // optional: AssignedUserName = assignedUser?.FullName ?? "Unknown"
             });
         }
 
-        return Ok(models);
+        return this.Ok(models);
     }
 
     // GET: api/todolists/{todoListId}/tasks/{taskId}
@@ -71,7 +74,7 @@ public class TodoTaskController : ControllerBase
             DueDate = task.DueDate,
             IsCompleted = task.IsCompleted,
             TodoListId = task.TodoListId,
-            AssignedUserId = task.AssignedUserId
+            AssignedUserId = task.AssignedUserId,
         };
 
         return this.Ok(model);
@@ -95,7 +98,7 @@ public class TodoTaskController : ControllerBase
             DueDate = model.DueDate,
             IsCompleted = model.IsCompleted,
             TodoListId = todoListId,
-            AssignedUserId = userId // adjust if you want to allow custom assignment
+            AssignedUserId = userId, // adjust if you want to allow custom assignment
         };
 
         try
@@ -105,7 +108,8 @@ public class TodoTaskController : ControllerBase
             model.TodoListId = todoListId;
             model.AssignedUserId = taskDto.AssignedUserId;
 
-            return this.CreatedAtAction(nameof(this.GetById),
+            return this.CreatedAtAction(
+                nameof(this.GetById),
                 new { todoListId, taskId = model.Id },
                 model);
         }
@@ -137,7 +141,7 @@ public class TodoTaskController : ControllerBase
             Description = model.Description,
             DueDate = model.DueDate,
             IsCompleted = model.IsCompleted,
-            TodoListId = todoListId
+            TodoListId = todoListId,
         };
 
         try
@@ -230,26 +234,26 @@ public class TodoTaskController : ControllerBase
 
         if (dto == null)
         {
-            return BadRequest("DTO is null");
+            return this.BadRequest("DTO is null");
         }
 
         if (string.IsNullOrWhiteSpace(dto.NewUserId))
         {
-            return BadRequest("NewUserId is missing");
+            return this.BadRequest("NewUserId is missing");
         }
 
         try
         {
             await this.taskService.ReassignTaskAsync(taskId, currentUserId, dto.NewUserId);
-            return Ok(new { message = "Task reassigned successfully" });
+            return this.Ok(new { message = "Task reassigned successfully" });
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return this.NotFound(new { message = ex.Message });
         }
         catch (UnauthorizedAccessException)
         {
-            return Forbid();
+            return this.Forbid();
         }
     }
 
@@ -260,36 +264,36 @@ public class TodoTaskController : ControllerBase
     [FromQuery] DateTime? dueBefore = null,
     [FromQuery] string? assignedUserId = null)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         try
         {
-            var results = await taskService.SearchTasksAsync(userId, query, status, dueBefore, assignedUserId);
-            return Ok(results);
+            var results = await this.taskService.SearchTasksAsync(userId, query, status, dueBefore, assignedUserId);
+            return this.Ok(results);
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return this.BadRequest(new { error = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return this.BadRequest(new { error = ex.Message });
         }
     }
 
     [HttpGet("{taskId}/details")]
     public async Task<IActionResult> GetTaskDetails(int taskId)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
         try
         {
-            var taskWithTags = await tagService.GetTaskWithTagsAsync(taskId, userId);
-            return Ok(taskWithTags);
+            var taskWithTags = await this.tagService.GetTaskWithTagsAsync(taskId, userId);
+            return this.Ok(taskWithTags);
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { message = ex.Message });
+            return this.NotFound(new { message = ex.Message });
         }
     }
 
