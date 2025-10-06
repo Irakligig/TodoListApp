@@ -40,7 +40,6 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             .AsNoTracking()
             .IgnoreQueryFilters()
             .Where(t => t.TodoListId == todoListId)
-            .Where(t => t.AssignedUserId == ownerId)
             .Select(t => new TodoTask()
             {
                 // Data mapping (projection) must be complete to avoid ID=0
@@ -130,6 +129,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
         entity.Description = task.Description;
         entity.DueDate = task.DueDate ?? entity.DueDate;
         entity.IsCompleted = task.IsCompleted;
+        entity.AssignedUserId = task.AssignedUserId;
 
         _ = await this.context.SaveChangesAsync();
     }

@@ -1,1 +1,1 @@
-select * from TodoLists;
+select * from TodoLists

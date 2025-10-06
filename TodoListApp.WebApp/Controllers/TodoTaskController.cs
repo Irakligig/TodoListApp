@@ -89,14 +89,29 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(TodoTaskModel task)
         {
+            Console.WriteLine($"POST Edit: Id={task.Id}, ListId={task.TodoListId}, Name={task.Name}");
+
             if (!ModelState.IsValid)
             {
+                Console.WriteLine("ModelState invalid!");
                 return View(task);
             }
 
-            await _taskService.UpdateAsync(task.TodoListId, task.Id, task);
+            try
+            {
+                Console.WriteLine("Before UpdateAsync");
+                await _taskService.UpdateAsync(task.TodoListId, task.Id, task);
+                Console.WriteLine("After UpdateAsync");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception in UpdateAsync: " + ex.Message);
+                throw;
+            }
+
             return RedirectToAction("Index", new { listId = task.TodoListId });
         }
+
 
         // ======================
         // Delete Task

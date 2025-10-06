@@ -1,13 +1,14 @@
 @model TodoListApp.WebApi.Models.TodoTaskModel
-@using TodoListApp.WebApp.Services
 @{
     ViewData["Title"] = "Edit Task";
-    var users = ViewBag.Users as List<TodoListApp.WebApi.Models.TodoUserModel> ?? new List<TodoListApp.WebApi.Models.TodoUserModel>();
+    var users = ViewBag.Users as List<TodoListApp.WebApi.Models.TodoUserModel> ?? new();
 }
 
 <h2>Edit Task</h2>
 
 <form asp-action="Edit" method="post">
+    @Html.AntiForgeryToken()
+
     <input type="hidden" asp-for="TodoListId" />
     <input type="hidden" asp-for="Id" />
 
@@ -26,16 +27,8 @@
     <div class="form-group mb-3">
         <label asp-for="IsCompleted"></label>
         <select asp-for="IsCompleted" class="form-control">
-            @if (Model.IsCompleted)
-            {
-                <option value="false">Pending</option>
-                <option value="true" selected>Completed</option>
-            }
-            else
-            {
-                <option value="false" selected>Pending</option>
-                <option value="true">Completed</option>
-            }
+            <option value="false">Pending</option>
+            <option value="true">Completed</option>
         </select>
     </div>
 
@@ -45,18 +38,16 @@
             <option value="">-- Select User --</option>
             @foreach (var user in users)
             {
-                if (Model.AssignedUserId == user.Id)
-                {
-                    <option value="@user.Id" selected>@user.FullName</option>
-                }
-                else
-                {
-                    <option value="@user.Id">@user.FullName</option>
-                }
+                <option value="@user.Id">@user.FullName</option>
             }
         </select>
+        <span asp-validation-for="AssignedUserId" class="text-danger"></span>
     </div>
 
     <button type="submit" class="btn btn-primary">Save</button>
     <a asp-action="Index" asp-route-listId="@Model.TodoListId" class="btn btn-secondary">Cancel</a>
 </form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
