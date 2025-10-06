@@ -1,0 +1,38 @@
+@model IEnumerable<TodoListApp.WebApi.Models.TodoTaskModel>
+
+@{
+    ViewData["Title"] = $"Tasks tagged with '{ViewBag.TagName}'";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<a asp-controller="Tag" asp-action="Index" class="btn btn-secondary mb-3">← Back to Tags</a>
+
+@if (Model != null && Model.Any())
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Due Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var task in Model)
+            {
+                <tr>
+                    <td>@task.Name</td>
+                    <td>@task.Description</td>
+                    <td>@task.DueDate?.ToString("yyyy-MM-dd")</td>
+                    <td>@(task.IsCompleted ? "✅ Done" : "🕒 Pending")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No tasks found with this tag.</p>
+}

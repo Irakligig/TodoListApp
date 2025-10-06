@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using TodoListApp.Services.Database.Entities;
 
 namespace TodoListApp.Services.Database;
 public class UsersDbContext : DbContext

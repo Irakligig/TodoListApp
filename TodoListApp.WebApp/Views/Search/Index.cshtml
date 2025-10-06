@@ -1,0 +1,57 @@
+@model TodoListApp.WebApi.Models.SearchViewModel
+@{
+    ViewData["Title"] = "Search Tasks";
+}
+
+<h2>Search Tasks</h2>
+
+<form asp-action="Results" method="post">
+    <div>
+        <label asp-for="Query"></label>
+        <input asp-for="Query" />
+    </div>
+    <div>
+        <label asp-for="Status"></label>
+        <select asp-for="Status">
+            <option value="">All</option>
+            <option value="false">Pending</option>
+            <option value="true">Completed</option>
+        </select>
+    </div>
+    <div>
+        <label asp-for="DueBefore"></label>
+        <input asp-for="DueBefore" type="date" />
+    </div>
+    <div>
+        <label asp-for="AssignedUserId"></label>
+        <input asp-for="AssignedUserId" />
+    </div>
+    <button type="submit">Search</button>
+</form>
+
+@if (Model.Results.Any())
+{
+    <h3>Results</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Task Name</th>
+                <th>Description</th>
+                <th>Due Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var task in Model.Results)
+            {
+                var isOverdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
+                <tr style="@(isOverdue ? "background-color: #f8d7da;" : "")">
+                    <td>@task.Name</td>
+                    <td>@task.Description</td>
+                    <td>@(task.DueDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                    <td>@(task.IsCompleted ? "Completed" : "Pending")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

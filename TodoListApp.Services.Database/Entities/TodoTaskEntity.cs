@@ -1,4 +1,4 @@
-namespace TodoListApp.Services.Database
+namespace TodoListApp.Services.Database.Entities
 {
     public class TodoTaskEntity
     {
@@ -20,5 +20,7 @@ namespace TodoListApp.Services.Database
 
         // Navigation property
         public TodoListEntity TodoList { get; set; } = null!;
+
+        public ICollection<TodoTaskTagEntity> TaskTags { get; set; } = new List<TodoTaskTagEntity>();
     }
 }

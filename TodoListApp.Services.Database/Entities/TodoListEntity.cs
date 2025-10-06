@@ -1,4 +1,4 @@
-namespace TodoListApp.Services.Database
+namespace TodoListApp.Services.Database.Entities
 {
     public class TodoListEntity
     {

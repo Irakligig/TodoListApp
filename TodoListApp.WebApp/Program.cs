@@ -16,6 +16,11 @@ builder.Services.AddHttpClient<ITodoTaskWebApiService, TodoTaskWebApiService>(cl
 {
     client.BaseAddress = new Uri("https://localhost:7001/");
 });
+// Register ITodoTaskTagWebApiService with HttpClient
+builder.Services.AddHttpClient<ITodoTaskTagWebApiService, TodoTaskTagWebApiService>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7001/");
+});
 
 var app = builder.Build();
 
@@ -33,6 +38,11 @@ app.UseRouting();
 
 // --- AUTH: here you can use cookie auth if needed ---
 app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "search",
+    pattern: "Search/{action=Index}/{id?}",
+    defaults: new { controller = "Search" });
 
 app.MapControllerRoute(
     name: "default",

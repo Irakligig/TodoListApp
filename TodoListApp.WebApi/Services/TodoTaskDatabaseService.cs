@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TodoListApp.Services.Database;
+using TodoListApp.Services.Database.Entities;
 using TodoListApp.WebApi.Data;
 
 namespace TodoListApp.WebApi.Services;
@@ -286,23 +289,33 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
     }
 
     public async Task<IEnumerable<TodoTask>> SearchTasksAsync(
-    string userId,
-    string? query,
-    bool? status,
-    DateTime? dueBefore,
-    string? assignedUserId)
+     string userId,
+     string? query,
+     bool? status,
+     DateTime? dueBefore,
+     string? assignedUserId)
     {
+        if (string.IsNullOrEmpty(userId))
+        {
+            throw new ArgumentException("User ID is required.", nameof(userId));
+        }
+
+        // Base query
         var tasks = context.TodoTasks
             .Include(t => t.TodoList)
             .Where(t => t.TodoList.OwnerId == userId);
 
+        // Optional filters
         if (!string.IsNullOrWhiteSpace(query))
         {
             tasks = tasks.Where(t =>
                 t.Name.Contains(query) || (t.Description ?? "").Contains(query));
         }
 
-        tasks = tasks.Where(t => t.IsCompleted == status);
+        if (status.HasValue)
+        {
+            tasks = tasks.Where(t => t.IsCompleted == status.Value);
+        }
 
         if (dueBefore.HasValue)
         {
@@ -314,6 +327,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             tasks = tasks.Where(t => t.AssignedUserId == assignedUserId);
         }
 
+        // Execute query
         var result = await tasks.AsNoTracking()
             .Select(t => new TodoTask
             {
@@ -329,5 +343,4 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
 
         return result;
     }
-
 }

@@ -150,8 +150,26 @@ namespace TodoListApp.WebApp.Controllers
                 return NotFound();
             }
 
+            // Fetch tags for this task
+            var tagService = HttpContext.RequestServices.GetRequiredService<ITodoTaskTagWebApiService>();
+            var tags = await tagService.GetTagsForTaskAsync(id);
+
+            // Use TaskWithTagsViewModel
+            var model = new TaskWithTagsViewModel
+            {
+                Id = task.Id,
+                Name = task.Name,
+                Description = task.Description,
+                DueDate = task.DueDate,
+                IsCompleted = task.IsCompleted,
+                TodoListId = task.TodoListId,
+                AssignedUserId = task.AssignedUserId,
+                Tags = tags,
+                NewTag = string.Empty // For adding new tag
+            };
+
             ViewBag.ListId = listId;
-            return View(task);
+            return View(model);
         }
 
         // ======================

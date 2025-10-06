@@ -19,4 +19,6 @@ public class TodoTaskModel
     public int TodoListId { get; set; }// Parent list ID
 
     public string AssignedUserId { get; set; } = string.Empty; // NEW: user assigned to this task
+
+    public List<string> Tags { get; set; } = new List<string>(); // NEW: associated tags
 }

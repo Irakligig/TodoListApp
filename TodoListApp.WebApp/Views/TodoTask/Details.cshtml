@@ -1,4 +1,4 @@
-@model TodoListApp.WebApi.Models.TodoTaskModel
+@model TodoListApp.WebApi.Models.TaskWithTagsViewModel
 
 @{
     ViewData["Title"] = "Task Details";
@@ -19,10 +19,40 @@
 
         <dt class="col-sm-2">Status</dt>
         <dd class="col-sm-10">@(Model.IsCompleted ? "Completed" : "Pending")</dd>
+
+        <dt class="col-sm-2">Tags</dt>
+        <dd class="col-sm-10">
+            <ul class="list-inline">
+                @foreach (var tag in Model.Tags)
+                {
+                    <li class="list-inline-item">
+                        <a asp-controller="Tag" asp-action="TasksByTag" asp-route-tagName="@tag"
+                           class="badge bg-info text-dark text-decoration-none">
+                            @tag
+                        </a>
+
+                        <form asp-controller="Tag" asp-action="RemoveTag" method="post" style="display:inline">
+                            <input type="hidden" name="taskId" value="@Model.Id" />
+                            <input type="hidden" name="listId" value="@Model.TodoListId" />
+                            <input type="hidden" name="tagName" value="@tag" />
+                            <button type="submit" class="btn btn-sm btn-link text-danger p-0 ms-1">×</button>
+                        </form>
+                    </li>
+                }
+            </ul>
+
+            <form asp-controller="Tag" asp-action="AddTag" method="post" class="mt-2 d-flex gap-2">
+                <input type="hidden" name="taskId" value="@Model.Id" />
+                <input type="hidden" name="listId" value="@Model.TodoListId" />
+                <input type="text" name="newTag" placeholder="New tag" value="@Model.NewTag" class="form-control form-control-sm" />
+                <button type="submit" class="btn btn-primary btn-sm">Add</button>
+            </form>
+        </dd>
+
     </dl>
 </div>
 
-<div>
-    <a asp-action="Edit" asp-route-listId="@Model.TodoListId" asp-route-id="@Model.Id">Edit</a> |
-    <a asp-action="Index" asp-route-listId="@Model.TodoListId">Back to List</a>
+<div class="mt-3">
+    <a asp-action="Edit" asp-route-listId="@Model.TodoListId" asp-route-id="@Model.Id" class="btn btn-secondary btn-sm">Edit</a>
+    <a asp-action="Index" asp-route-listId="@Model.TodoListId" class="btn btn-link btn-sm">Back to List</a>
 </div>

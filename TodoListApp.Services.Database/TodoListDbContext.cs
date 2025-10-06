@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TodoListApp.Services.Database.Entities;
 
 namespace TodoListApp.Services.Database
 {
@@ -13,6 +14,10 @@ namespace TodoListApp.Services.Database
 
         public DbSet<TodoTaskEntity> TodoTasks => this.Set<TodoTaskEntity>();
 
+        public DbSet<TodoTagEntity> TodoTags => this.Set<TodoTagEntity>();
+
+        public DbSet<TodoTaskTagEntity> TodoTaskTags => this.Set<TodoTaskTagEntity>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             _ = modelBuilder.Entity<TodoListEntity>()
@@ -20,6 +25,20 @@ namespace TodoListApp.Services.Database
                 .WithOne(t => t.TodoList)
                 .HasForeignKey(t => t.TodoListId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            _ = modelBuilder.Entity<TodoTaskTagEntity>()
+        .HasKey(tt => new { tt.TodoTaskId, tt.TagId });
+
+            _ = modelBuilder.Entity<TodoTaskTagEntity>()
+                .HasOne(tt => tt.TodoTask) // from todotasktagperspective
+                .WithMany(t => t.TaskTags) // from todotaskperspective
+                .HasForeignKey(tt => tt.TodoTaskId);
+
+            _ = modelBuilder.Entity<TodoTaskTagEntity>()
+                .HasOne(tt => tt.Tag) // from todotasktagperspective
+                .WithMany(t => t.TaskTags) // from todotagperspective
+                .HasForeignKey(tt => tt.TagId);
+
         }
     }
 }

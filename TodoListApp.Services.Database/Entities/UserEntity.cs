@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TodoListApp.Services.Database
+namespace TodoListApp.Services.Database.Entities
 {
     public class User
     {

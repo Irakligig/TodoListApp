@@ -1,0 +1,11 @@
+@model IEnumerable<string>
+
+<h2>All Tags</h2>
+<ul>
+    @foreach (var tag in Model)
+    {
+        <li>
+            <a asp-action="TasksByTag" asp-route-tagName="@tag">@tag</a>
+        </li>
+    }
+</ul>

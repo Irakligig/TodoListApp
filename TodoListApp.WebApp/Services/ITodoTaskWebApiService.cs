@@ -15,6 +15,9 @@ namespace TodoListApp.WebApp.Services
         Task UpdateStatusAsync(int taskId, bool status);
         Task ReassignTaskAsync(int taskId, string newUserId);
         Task<List<TodoUserModel>> GetAllUsersAsync();
+        Task<IEnumerable<TodoTaskModel>> SearchTasksAsync(
+            string? query, bool? status, DateTime? dueBefore, string? assignedUserId);
+
     }
 
 }

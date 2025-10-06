@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using TodoListApp.WebApi.Models;
@@ -188,5 +189,49 @@ namespace TodoListApp.WebApp.Services
             return users ?? new List<TodoUserModel>();
         }
 
+        public async Task<IEnumerable<TodoTaskModel>> SearchTasksAsync(
+            string? query = null,
+            bool? status = null,
+            DateTime? dueBefore = null,
+            string? assignedUserId = null)
+        {
+            await EnsureTokenAsync();
+
+            var url = $"/api/tasks/search?";
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                url += $"query={Uri.EscapeDataString(query)}&";
+            }
+
+            if (status.HasValue)
+            {
+                url += $"status={status.Value}&";
+            }
+
+            if (dueBefore.HasValue)
+            {
+                url += $"dueBefore={dueBefore.Value:yyyy-MM-dd}&";
+            }
+
+            if (!string.IsNullOrWhiteSpace(assignedUserId))
+            {
+                url += $"assignedUserId={Uri.EscapeDataString(assignedUserId)}&";
+            }
+
+            // Remove trailing '&'
+            url = url.TrimEnd('&');
+
+            try
+            {
+                var tasks = await http.GetFromJsonAsync<List<TodoTaskModel>>(url);
+                return tasks ?? new List<TodoTaskModel>();
+            }
+            catch (HttpRequestException)
+            {
+                // Optionally log the error
+                return new List<TodoTaskModel>();
+            }
+        }
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using TodoListApp.Services.Database;
+using TodoListApp.WebApi.Controllers;
 using TodoListApp.WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,7 +19,11 @@ builder.Services.AddDbContext<UsersDbContext>(options =>
 builder.Services.AddScoped<IUsersDatabaseService, TodoUsersDatabaseService>();
 builder.Services.AddScoped<ITodoListDatabaseService, TodoListDatabaseService>();
 builder.Services.AddScoped<ITodoTaskDatabaseService, TodoTaskDatabaseService>();
+builder.Services.AddScoped<ITodoTaskTagDatabaseService, TodoTaskTagDatabaseService>();
 builder.Services.AddControllers();
+
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(TodoTaskTagController).Assembly);
 
 // ===== JWT CONFIG =====
 var jwtKey = "YourSuperSecretKey123!"; // must match your frontend expectations

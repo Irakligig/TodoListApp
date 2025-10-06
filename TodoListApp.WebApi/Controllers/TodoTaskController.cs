@@ -14,10 +14,12 @@ public class TodoTaskController : ControllerBase
 {
     private readonly ITodoTaskDatabaseService taskService;
     private readonly IUsersDatabaseService usersService;
-    public TodoTaskController(ITodoTaskDatabaseService taskService, IUsersDatabaseService usersService)
+    private readonly ITodoTaskTagDatabaseService tagService;
+    public TodoTaskController(ITodoTaskDatabaseService taskService, IUsersDatabaseService usersService, ITodoTaskTagDatabaseService tagService)
     {
         this.taskService = taskService;
         this.usersService = usersService;
+        this.tagService = tagService;
     }
 
     // GET: api/todolists/{todoListId}/tasks
@@ -251,21 +253,44 @@ public class TodoTaskController : ControllerBase
         }
     }
 
-    // GET: api/tasks/search
     [HttpGet("~/api/tasks/search")]
     public async Task<IActionResult> Search(
-        [FromQuery] string? query = null,
-        [FromQuery] bool? status = null,
-        [FromQuery] DateTime? dueBefore = null,
-        [FromQuery] string? assignedUserId = null)
+    [FromQuery] string? query = null,
+    [FromQuery] bool? status = null,
+    [FromQuery] DateTime? dueBefore = null,
+    [FromQuery] string? assignedUserId = null)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
-        var results = await this.taskService.SearchTasksAsync(userId, query, status, dueBefore, assignedUserId);
-
-        return Ok(results);
+        try
+        {
+            var results = await taskService.SearchTasksAsync(userId, query, status, dueBefore, assignedUserId);
+            return Ok(results);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
+    [HttpGet("{taskId}/details")]
+    public async Task<IActionResult> GetTaskDetails(int taskId)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
 
+        try
+        {
+            var taskWithTags = await tagService.GetTaskWithTagsAsync(taskId, userId);
+            return Ok(taskWithTags);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 
 }
