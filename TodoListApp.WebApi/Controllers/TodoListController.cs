@@ -79,6 +79,7 @@ public class TodoListController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] TodoListModel model)
     {
+        ModelState.Remove("OwnerId");
         if (!this.ModelState.IsValid)
         {
             return this.BadRequest(this.ModelState);

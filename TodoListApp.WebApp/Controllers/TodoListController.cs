@@ -96,6 +96,8 @@ namespace TodoListApp.WebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(TodoListModel list)
         {
+            ModelState.Remove("OwnerId");
+
             if (ModelState.IsValid)
             {
                 await _todoListService.UpdateTodoListAsync(list);
