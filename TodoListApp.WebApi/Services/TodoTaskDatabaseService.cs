@@ -63,7 +63,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             return null;
         }
 
-        if (task.TodoList.OwnerId != ownerId)
+        if (task.TodoList.OwnerId != ownerId && task.AssignedUserId != ownerId)
         {
             throw new UnauthorizedAccessException("You do not have access to this task.");
         }

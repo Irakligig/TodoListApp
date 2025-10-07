@@ -20,6 +20,7 @@ builder.Services.AddScoped<IUsersDatabaseService, TodoUsersDatabaseService>();
 builder.Services.AddScoped<ITodoListDatabaseService, TodoListDatabaseService>();
 builder.Services.AddScoped<ITodoTaskDatabaseService, TodoTaskDatabaseService>();
 builder.Services.AddScoped<ITodoTaskTagDatabaseService, TodoTaskTagDatabaseService>();
+builder.Services.AddScoped<ITodoCommentDatabaseService, TodoCommentDatabaseService>();
 builder.Services.AddControllers();
 
 builder.Services.AddControllers()

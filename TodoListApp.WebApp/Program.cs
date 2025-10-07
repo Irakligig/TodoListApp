@@ -22,6 +22,12 @@ builder.Services.AddHttpClient<ITodoTaskTagWebApiService, TodoTaskTagWebApiServi
     client.BaseAddress = new Uri("https://localhost:7001/");
 });
 
+// Register ITodoCommentWebApiService with HttpClient
+builder.Services.AddHttpClient<ITodoCommentWebApiService, TodoCommentWebApiService>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7001/");
+});
+
 var app = builder.Build();
 
 // Middleware

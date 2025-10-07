@@ -14,6 +14,8 @@ namespace TodoListApp.WebApi.Data
 
         public int TodoListId { get; set; }// Parent TodoList ID
 
+        public string? OwnerId { get; set; } // Owner of the task
+
         public string AssignedUserId { get; set; } = string.Empty; // User assigned to this task
 
         public List<TodoTag> Tags { get; set; } = new List<TodoTag>(); // Associated tags

@@ -52,6 +52,17 @@
     </dl>
 </div>
 
+<div class="mt-4">
+    <h4>Comments</h4>
+    <a asp-action="Edit"
+       asp-route-listId="@Model.TodoListId"
+       asp-route-id="@Model.Id"
+       class="btn btn-outline-primary btn-sm">
+        View Comments
+    </a>
+</div>
+
+
 <div class="mt-3">
     <a asp-action="Edit" asp-route-listId="@Model.TodoListId" asp-route-id="@Model.Id" class="btn btn-secondary btn-sm">Edit</a>
     <a asp-action="Index" asp-route-listId="@Model.TodoListId" class="btn btn-link btn-sm">Back to List</a>
