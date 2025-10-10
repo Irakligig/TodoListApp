@@ -3,55 +3,87 @@
     ViewData["Title"] = "Search Tasks";
 }
 
-<h2>Search Tasks</h2>
+<div class="container mt-4">
+    <!-- Search Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h2 class="mb-0">Search Tasks</h2>
+        </div>
+        <div class="card-body">
+            <form asp-action="Results" method="post" class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Query" class="form-label"></label>
+                    <input asp-for="Query" class="form-control" placeholder="Enter task name or description" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" class="form-select">
+                        <option value="">All</option>
+                        <option value="false">Pending</option>
+                        <option value="true">Completed</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="DueBefore" class="form-label"></label>
+                    <input asp-for="DueBefore" type="date" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="AssignedUserId" class="form-label"></label>
+                    <input asp-for="AssignedUserId" class="form-control" placeholder="User ID" />
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-<form asp-action="Results" method="post">
-    <div>
-        <label asp-for="Query"></label>
-        <input asp-for="Query" />
-    </div>
-    <div>
-        <label asp-for="Status"></label>
-        <select asp-for="Status">
-            <option value="">All</option>
-            <option value="false">Pending</option>
-            <option value="true">Completed</option>
-        </select>
-    </div>
-    <div>
-        <label asp-for="DueBefore"></label>
-        <input asp-for="DueBefore" type="date" />
-    </div>
-    <div>
-        <label asp-for="AssignedUserId"></label>
-        <input asp-for="AssignedUserId" />
-    </div>
-    <button type="submit">Search</button>
-</form>
-
-@if (Model.Results.Any())
-{
-    <h3>Results</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Task Name</th>
-                <th>Description</th>
-                <th>Due Date</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var task in Model.Results)
-            {
-                var isOverdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
-                <tr style="@(isOverdue ? "background-color: #f8d7da;" : "")">
-                    <td>@task.Name</td>
-                    <td>@task.Description</td>
-                    <td>@(task.DueDate?.ToString("yyyy-MM-dd") ?? "-")</td>
-                    <td>@(task.IsCompleted ? "Completed" : "Pending")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+    <!-- Results Table -->
+    @if (Model.Results != null && Model.Results.Any())
+    {
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h3 class="mb-0">Results</h3>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle text-center mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Task Name</th>
+                                <th>Description</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var task in Model.Results)
+                            {
+                                var isOverdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
+                                <tr class="@(isOverdue ? "table-danger" : "")">
+                                    <td>@task.Name</td>
+                                    <td>@task.Description</td>
+                                    <td>@(task.DueDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                                    <td>
+                                        @if (task.IsCompleted)
+                                        {
+                                            <span class="badge bg-success">Completed</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else if (Model.Results != null)
+    {
+        <div class="alert alert-info">No tasks found matching your search criteria.</div>
+    }
+</div>

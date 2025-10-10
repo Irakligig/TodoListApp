@@ -4,34 +4,58 @@
     ViewData["Title"] = "Tasks";
 }
 
-<h2>Tasks</h2>
-
-<a asp-action="Create" asp-route-listId="@listId">Create New Task</a>
-
-<table class="table">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var task in Model)
-        {
-            <tr>
-                <td>@task.Name</td>
-                <td>@task.IsCompleted</td>
-                <td>
-                    <a asp-action="Details" asp-route-listId="@task.TodoListId" asp-route-id="@task.Id">Details</a> |
-                    <a asp-action="Edit" asp-route-listId="@task.TodoListId" asp-route-id="@task.Id">Edit</a> |
-                    <form asp-action="Delete" method="post" style="display:inline">
-                        <input type="hidden" name="listId" value="@task.TodoListId" />
-                        <input type="hidden" name="id" value="@task.Id" />
-                        <button type="submit" class="btn btn-link">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+<div class="container mt-4">
+    <!-- Card wrapper -->
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Tasks</h2>
+            <a asp-action="Create" asp-route-listId="@listId" class="btn btn-success">Create New Task</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle text-center mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var task in Model)
+                        {
+                            <tr>
+                                <td>@task.Name</td>
+                                <td>
+                                    @if (task.IsCompleted)
+                                    {
+                                        <span class="badge bg-success">Completed</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-action="Details" asp-route-listId="@task.TodoListId" asp-route-id="@task.Id" class="btn btn-sm btn-outline-primary me-1">Details</a>
+                                    <a asp-action="Edit" asp-route-listId="@task.TodoListId" asp-route-id="@task.Id" class="btn btn-sm btn-outline-warning me-1">Edit</a>
+                                    <form asp-action="Delete" method="post" style="display:inline">
+                                        <input type="hidden" name="listId" value="@task.TodoListId" />
+                                        <input type="hidden" name="id" value="@task.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="3" class="text-muted">No tasks available in this list.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
