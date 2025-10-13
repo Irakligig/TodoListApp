@@ -1,65 +1,66 @@
+using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using TodoListApp.WebApi.Models;
-using static System.Net.WebRequestMethods;
+using Microsoft.AspNetCore.Http;
 
 namespace TodoListApp.WebApp.Services;
 
 public class TodoTaskTagWebApiService : ITodoTaskTagWebApiService
 {
-    private readonly HttpClient http;
-    private string? _jwtToken;
+    private readonly HttpClient _http;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-
-    public TodoTaskTagWebApiService(HttpClient client)
+    public TodoTaskTagWebApiService(HttpClient http, IHttpContextAccessor httpContextAccessor)
     {
-        http = client;
+        _http = http;
+        _httpContextAccessor = httpContextAccessor;
     }
 
-    private async Task EnsureTokenAsync()
+    private void AddAuthHeader()
     {
-        if (!string.IsNullOrEmpty(_jwtToken))
+        var token = _httpContextAccessor.HttpContext?.Request.Cookies["JwtToken"];
+        if (!string.IsNullOrEmpty(token))
         {
-            return;
+            _http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", token);
         }
-
-        var tokenResponse = await http.GetFromJsonAsync<TokenResponse>("/api/token");
-        if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.token))
+        else
         {
-            throw new Exception("Failed to retrieve JWT token from WebAPI.");
+            throw new InvalidOperationException("JWT token is not available. Please log in first.");
         }
-
-        _jwtToken = tokenResponse.token;
-        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtToken);
     }
 
     public async Task<List<string>> GetAllTagsAsync()
     {
-        await EnsureTokenAsync();
-        return await http.GetFromJsonAsync<List<string>>("api/tasks/tags/all") ?? new List<string>();
+        AddAuthHeader();
+        return await _http.GetFromJsonAsync<List<string>>("api/tasks/tags/all") ?? new List<string>();
     }
 
     public async Task<List<string>> GetTagsForTaskAsync(int taskId)
     {
-        await EnsureTokenAsync();
-        return await http.GetFromJsonAsync<List<string>>($"api/tasks/tags/task/{taskId}") ?? new List<string>();
+        AddAuthHeader();
+        return await _http.GetFromJsonAsync<List<string>>($"api/tasks/tags/task/{taskId}") ?? new List<string>();
     }
 
     public async Task AddTagToTaskAsync(int taskId, string tagName)
     {
-        await EnsureTokenAsync();
+        AddAuthHeader();
         var dto = new { TagName = tagName };
-        await http.PostAsJsonAsync($"api/tasks/tags/task/{taskId}", dto);
+        var res = await _http.PostAsJsonAsync($"api/tasks/tags/task/{taskId}", dto);
+        res.EnsureSuccessStatusCode();
     }
 
-    public async Task RemoveTagFromTaskAsync(int taskId, string tagName) {
-        await EnsureTokenAsync();
-        await http.DeleteAsync($"api/tasks/tags/task/{taskId}?tagName={tagName}");
+    public async Task RemoveTagFromTaskAsync(int taskId, string tagName)
+    {
+        AddAuthHeader();
+        var res = await _http.DeleteAsync($"api/tasks/tags/task/{taskId}?tagName={tagName}");
+        res.EnsureSuccessStatusCode();
     }
 
     public async Task<List<TodoTaskModel>> GetTasksByTagAsync(string tagName)
     {
-        await EnsureTokenAsync();
-        return await http.GetFromJsonAsync<List<TodoTaskModel>>($"api/tasks/tags/bytag/{tagName}")
-        ?? new List<TodoTaskModel>();
+        AddAuthHeader();
+        return await _http.GetFromJsonAsync<List<TodoTaskModel>>($"api/tasks/tags/bytag/{tagName}") ?? new List<TodoTaskModel>();
     }
 }

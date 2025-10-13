@@ -1,32 +1,64 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using TodoListApp.WebApp.Helpers;
 using TodoListApp.WebApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add services to the container
 builder.Services.AddControllersWithViews();
 
-// Register ITodoListWebApiService with HttpClient
+// Needed to access cookies inside services
+builder.Services.AddHttpContextAccessor();
+
+var apiBase = new Uri("https://localhost:7001/");
+
+// Register HttpClients
 builder.Services.AddHttpClient<ITodoListWebApiService, TodoListWebApiService>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7001/"); // Web API base URL
+    client.BaseAddress = apiBase;
 });
 
-// Register ITodoTaskWebApiService with HttpClient
 builder.Services.AddHttpClient<ITodoTaskWebApiService, TodoTaskWebApiService>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7001/");
-});
-// Register ITodoTaskTagWebApiService with HttpClient
-builder.Services.AddHttpClient<ITodoTaskTagWebApiService, TodoTaskTagWebApiService>(client =>
-{
-    client.BaseAddress = new Uri("https://localhost:7001/");
+    client.BaseAddress = apiBase;
 });
 
-// Register ITodoCommentWebApiService with HttpClient
+builder.Services.AddHttpClient<ITodoTaskTagWebApiService, TodoTaskTagWebApiService>(client =>
+{
+    client.BaseAddress = apiBase;
+});
+
 builder.Services.AddHttpClient<ITodoCommentWebApiService, TodoCommentWebApiService>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7001/");
+    client.BaseAddress = apiBase;
 });
+
+// Auth service singleton
+builder.Services.AddSingleton<IUsersAuthWebApiService>(sp =>
+{
+    var http = new HttpClient { BaseAddress = new Uri("https://localhost:7001/") };
+    var httpContextAccessor = sp.GetRequiredService<IHttpContextAccessor>();
+    return new UsersAuthWebApiService(http, httpContextAccessor);
+});
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.LoginPath = "/Auth/Login";
+    options.LogoutPath = "/Auth/Logout";
+})
+.AddJwtBearer(options =>
+{
+    options.Authority = "https://localhost:7001/"; // your API base
+    options.Audience = "TodoListApi";
+    options.RequireHttpsMetadata = true;
+});
+
 
 var app = builder.Build();
 
@@ -37,14 +69,15 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseGlobalExceptionHandler();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
-// --- AUTH: here you can use cookie auth if needed ---
+app.UseCookiePolicy();
+app.UseAuthentication();
 app.UseAuthorization();
 
+// Routes
 app.MapControllerRoute(
     name: "search",
     pattern: "Search/{action=Index}/{id?}",

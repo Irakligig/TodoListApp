@@ -2,73 +2,86 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using TodoListApp.WebApi.Models;
 
-namespace TodoListApp.WebApp.Services
+namespace TodoListApp.WebApp.Services;
+
+public class TodoCommentWebApiService : ITodoCommentWebApiService
 {
-    public class TodoCommentWebApiService : ITodoCommentWebApiService
+    private readonly HttpClient _http;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public TodoCommentWebApiService(HttpClient http, IHttpContextAccessor httpContextAccessor)
     {
-        private readonly HttpClient _http;
-        private string? _jwtToken;
+        _http = http;
+        _httpContextAccessor = httpContextAccessor;
+    }
 
-        public TodoCommentWebApiService(HttpClient http)
+    private void AddAuthHeader()
+    {
+        var token = _httpContextAccessor.HttpContext?.Request.Cookies["JwtToken"];
+        if (!string.IsNullOrEmpty(token))
         {
-            _http = http;
+            _http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+    }
+
+
+    public async Task<IEnumerable<TodoCommentModel>> GetCommentsAsync(int taskId)
+    {
+        AddAuthHeader();
+
+        var res = await _http.GetAsync($"/api/tasks/{taskId}/comments");
+
+        if (!res.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException($"Failed to get comments: {res.StatusCode}");
         }
 
-        private async Task EnsureTokenAsync()
+        var comments = await res.Content.ReadFromJsonAsync<IEnumerable<TodoCommentModel>>();
+
+        if (comments == null)
         {
-            if (!string.IsNullOrEmpty(_jwtToken))
-            {
-                return;
-            }
-
-            var tokenResponse = await _http.GetFromJsonAsync<TokenResponse>("/api/token");
-            if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.token))
-            {
-                throw new Exception("Failed to retrieve JWT token from WebAPI.");
-            }
-
-            _jwtToken = tokenResponse.token;
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtToken);
+            return Array.Empty<TodoCommentModel>();
         }
 
-        // ✅ Get all comments for a task
-        public async Task<IEnumerable<TodoCommentModel>> GetCommentsAsync(int taskId)
+        return comments;
+    }
+
+    public async Task AddCommentAsync(int taskId, string text)
+    {
+        AddAuthHeader();
+
+        var model = new TodoCommentCreateModel { Text = text };
+        var res = await _http.PostAsJsonAsync($"/api/tasks/{taskId}/comments", model);
+
+        if (!res.IsSuccessStatusCode)
         {
-            await EnsureTokenAsync();
-
-            var res = await _http.GetAsync($"/api/tasks/{taskId}/comments");
-            res.EnsureSuccessStatusCode();
-
-            return await res.Content.ReadFromJsonAsync<IEnumerable<TodoCommentModel>>() ?? Array.Empty<TodoCommentModel>();
+            throw new HttpRequestException($"Failed to add comment: {res.StatusCode}");
         }
+    }
 
-        // ✅ Add comment
-        public async Task AddCommentAsync(int taskId, string text)
+    public async Task EditCommentAsync(int taskId, int commentId, string newText)
+    {
+        AddAuthHeader();
+
+        var model = new TodoCommentEditModel { Text = newText };
+        var res = await _http.PutAsJsonAsync($"/api/tasks/{taskId}/comments/{commentId}", model);
+
+        if (!res.IsSuccessStatusCode)
         {
-            await EnsureTokenAsync();
-
-            var model = new TodoCommentCreateModel { Text = text };
-            var res = await _http.PostAsJsonAsync($"/api/tasks/{taskId}/comments", model);
-            res.EnsureSuccessStatusCode();
+            throw new HttpRequestException($"Failed to edit comment: {res.StatusCode}");
         }
+    }
 
-        // ✅ Edit comment
-        public async Task EditCommentAsync(int taskId, int commentId, string newText)
+    public async Task DeleteCommentAsync(int taskId, int commentId)
+    {
+        AddAuthHeader();
+
+        var res = await _http.DeleteAsync($"/api/tasks/{taskId}/comments/{commentId}");
+
+        if (!res.IsSuccessStatusCode)
         {
-            await EnsureTokenAsync();
-
-            var model = new TodoCommentEditModel { Text = newText };
-            var res = await _http.PutAsJsonAsync($"/api/tasks/{taskId}/comments/{commentId}", model);
-            res.EnsureSuccessStatusCode();
-        }
-
-        // ✅ Delete comment
-        public async Task DeleteCommentAsync(int taskId, int commentId)
-        {
-            await EnsureTokenAsync();
-
-            var res = await _http.DeleteAsync($"/api/tasks/{taskId}/comments/{commentId}");
-            res.EnsureSuccessStatusCode();
+            throw new HttpRequestException($"Failed to delete comment: {res.StatusCode}");
         }
     }
 }

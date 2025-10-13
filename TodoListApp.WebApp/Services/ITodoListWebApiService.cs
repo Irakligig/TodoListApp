@@ -1,14 +1,17 @@
 using TodoListApp.WebApi.Models;
 
-namespace TodoListApp.WebApp.Services;
-
-public interface ITodoListWebApiService
+namespace TodoListApp.WebApp.Services
 {
-    Task<IEnumerable<TodoListModel>> GetTodoListsAsync();
+    public interface ITodoListWebApiService
+    {
+        // Returns null if JWT is missing or request fails
+        Task<IEnumerable<TodoListModel>?> GetTodoListsAsync();
 
-    Task AddTodoListAsync(TodoListModel newList);
+        // Returns false if JWT is missing or request fails
+        Task<bool> AddTodoListAsync(TodoListModel newList);
 
-    Task UpdateTodoListAsync(TodoListModel updatedList);
+        Task<bool> UpdateTodoListAsync(TodoListModel updatedList);
 
-    Task DeleteTodoListAsync(int id);
+        Task<bool> DeleteTodoListAsync(int id);
+    }
 }

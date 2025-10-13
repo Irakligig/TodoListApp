@@ -2,40 +2,42 @@ using Microsoft.AspNetCore.Mvc;
 using TodoListApp.WebApi.Models;
 using TodoListApp.WebApp.Services;
 
-namespace TodoListApp.WebApp.Controllers;
-[Route("Search")]
-public class SearchController : Controller
+namespace TodoListApp.WebApp.Controllers
 {
-    private readonly ITodoTaskWebApiService taskService;
-
-    public SearchController(ITodoTaskWebApiService taskService)
+    [Route("Search")]
+    public class SearchController : Controller
     {
-        this.taskService = taskService;
-    }
+        private readonly ITodoTaskWebApiService _taskService;
 
-    // GET: /Search
-    public IActionResult Index()
-    {
-        return this.View(new SearchViewModel());
-    }
-
-    // POST: /Search/Results
-    [HttpPost]
-    public async Task<IActionResult> Results(SearchViewModel model)
-    {
-        if (!this.ModelState.IsValid)
+        public SearchController(ITodoTaskWebApiService taskService)
         {
-            return this.View("Index", model);
+            _taskService = taskService;
         }
 
-        var tasks = await this.taskService.SearchTasksAsync(
-            model.Query,
-            model.Status,
-            model.DueBefore,
-            model.AssignedUserId
-        );
+        // GET: /Search
+        public IActionResult Index()
+        {
+            return this.View(new SearchViewModel());
+        }
 
-        model.Results = tasks.ToList();
-        return this.View("Index", model); // We can render the results on the same page
+        // POST: /Search/Results
+        [HttpPost]
+        public async Task<IActionResult> Results(SearchViewModel model)
+        {
+            if (!this.ModelState.IsValid)
+            {
+                return this.View("Index", model);
+            }
+
+            var tasks = await _taskService.SearchTasksAsync(
+                model.Query,
+                model.Status,
+                model.DueBefore,
+                model.AssignedUserId
+            );
+
+            model.Results = tasks.ToList();
+            return this.View("Index", model);
+        }
     }
 }

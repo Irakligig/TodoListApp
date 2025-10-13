@@ -1,4 +1,3 @@
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -8,112 +7,73 @@ namespace TodoListApp.WebApp.Services
 {
     public class TodoTaskWebApiService : ITodoTaskWebApiService
     {
-        private readonly HttpClient http;
-        private string? jwtToken;
+        private readonly HttpClient _http;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public TodoTaskWebApiService(HttpClient http)
+        public TodoTaskWebApiService(HttpClient http, IHttpContextAccessor httpContextAccessor)
         {
-            this.http = http;
+            _http = http;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        // Ensure JWT is retrieved & attached
-        private async Task EnsureTokenAsync()
+        private void AddAuthHeader()
         {
-            if (!string.IsNullOrEmpty(this.jwtToken))
+            var token = _httpContextAccessor.HttpContext?.Request.Cookies["JwtToken"];
+            if (!string.IsNullOrEmpty(token))
             {
-                return;
+                _http.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             }
-
-            var tokenResponse = await this.http.GetFromJsonAsync<TokenResponse>("/api/token").ConfigureAwait(false);
-            if (tokenResponse == null || string.IsNullOrEmpty(tokenResponse.token))
-            {
-                throw new InvalidOperationException("Failed to retrieve JWT token from WebAPI.");
-            }
-
-            this.jwtToken = tokenResponse.token;
-            this.http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", this.jwtToken);
         }
 
-        // ======================
-        // Tasks inside a TodoList
-        // ======================
+
         public async Task<IEnumerable<TodoTaskModel>> GetTasksAsync(int todoListId)
         {
-            await this.EnsureTokenAsync().ConfigureAwait(false);
-
-            var res = await this.http.GetAsync($"/api/todolists/{todoListId}/tasks").ConfigureAwait(false);
-
-            if (res.StatusCode == HttpStatusCode.Forbidden)
-            {
-                throw new System.Security.SecurityException($"Access denied to Todo List ID {todoListId}.");
-            }
-
-            if (res.StatusCode == HttpStatusCode.NotFound)
-            {
-                throw new KeyNotFoundException($"Todo List with ID {todoListId} not found.");
-            }
-
-            _ = res.EnsureSuccessStatusCode();
-
-            return await res.Content.ReadFromJsonAsync<IEnumerable<TodoTaskModel>>().ConfigureAwait(false)
+            AddAuthHeader();
+            var res = await _http.GetAsync($"api/todolists/{todoListId}/tasks");
+            res.EnsureSuccessStatusCode();
+            return await res.Content.ReadFromJsonAsync<IEnumerable<TodoTaskModel>>()
                    ?? Array.Empty<TodoTaskModel>();
         }
 
         public async Task<TodoTaskModel?> GetByIdAsync(int todoListId, int taskId)
         {
-            await this.EnsureTokenAsync().ConfigureAwait(false);
-
-            var res = await this.http.GetAsync($"/api/todolists/{todoListId}/tasks/{taskId}").ConfigureAwait(false);
-            if (res.StatusCode == HttpStatusCode.NotFound)
+            AddAuthHeader();
+            var res = await _http.GetAsync($"api/todolists/{todoListId}/tasks/{taskId}");
+            if (res.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 return null;
             }
 
-            _ = res.EnsureSuccessStatusCode();
-            return await res.Content.ReadFromJsonAsync<TodoTaskModel>().ConfigureAwait(false);
+            res.EnsureSuccessStatusCode();
+            return await res.Content.ReadFromJsonAsync<TodoTaskModel>();
         }
 
         public async Task<TodoTaskModel?> CreateAsync(int todoListId, TodoTaskModel model)
         {
-            await this.EnsureTokenAsync().ConfigureAwait(false);
-
-            var res = await this.http.PostAsJsonAsync($"/api/todolists/{todoListId}/tasks", model).ConfigureAwait(false);
-            if (!res.IsSuccessStatusCode)
-            {
-                throw new HttpRequestException($"Create failed: {res.StatusCode}");
-            }
-
-            return await res.Content.ReadFromJsonAsync<TodoTaskModel>().ConfigureAwait(false);
+            AddAuthHeader();
+            var res = await _http.PostAsJsonAsync($"api/todolists/{todoListId}/tasks", model);
+            res.EnsureSuccessStatusCode();
+            return await res.Content.ReadFromJsonAsync<TodoTaskModel>();
         }
 
         public async Task UpdateAsync(int todoListId, int taskId, TodoTaskModel model)
         {
-            await this.EnsureTokenAsync().ConfigureAwait(false);
-
-            var res = await this.http.PutAsJsonAsync($"/api/todolists/{todoListId}/tasks/{taskId}", model).ConfigureAwait(false);
-            if (!res.IsSuccessStatusCode)
-            {
-                throw new HttpRequestException($"Update failed: {res.StatusCode}");
-            }
+            AddAuthHeader();
+            var res = await _http.PutAsJsonAsync($"api/todolists/{todoListId}/tasks/{taskId}", model);
+            res.EnsureSuccessStatusCode();
         }
 
         public async Task DeleteAsync(int todoListId, int taskId)
         {
-            await this.EnsureTokenAsync().ConfigureAwait(false);
-
-            var res = await this.http.DeleteAsync($"/api/todolists/{todoListId}/tasks/{taskId}").ConfigureAwait(false);
-            if (!res.IsSuccessStatusCode)
-            {
-                throw new HttpRequestException($"Delete failed: {res.StatusCode}");
-            }
+            AddAuthHeader();
+            var res = await _http.DeleteAsync($"api/todolists/{todoListId}/tasks/{taskId}");
+            res.EnsureSuccessStatusCode();
         }
 
-        // ======================
-        // Assigned tasks
-        // ======================
         public async Task<IEnumerable<TodoTaskModel>> GetAssignedAsync(string? status = null, string? sortBy = null)
         {
-            await this.EnsureTokenAsync().ConfigureAwait(false);
+            AddAuthHeader();
 
             var query = new List<string>();
             if (!string.IsNullOrWhiteSpace(status))
@@ -123,115 +83,77 @@ namespace TodoListApp.WebApp.Services
 
             if (!string.IsNullOrWhiteSpace(sortBy))
             {
-                // Change to lowercase "sortby" to match API parameter
-                query.Add($"sortby={Uri.EscapeDataString(sortBy.ToLowerInvariant())}"); // Also convert value to lowercase
+                query.Add($"sortby={Uri.EscapeDataString(sortBy.ToLowerInvariant())}");
             }
 
             var queryString = query.Count > 0 ? "?" + string.Join("&", query) : string.Empty;
-            var res = await this.http.GetAsync($"/api/tasks/assigned{queryString}").ConfigureAwait(false);
+            var res = await _http.GetAsync($"api/tasks/assigned{queryString}");
+            res.EnsureSuccessStatusCode();
 
-            if (res.StatusCode == HttpStatusCode.BadRequest)
-            {
-                return Array.Empty<TodoTaskModel>();
-            }
-
-            _ = res.EnsureSuccessStatusCode();
-
-            return await res.Content.ReadFromJsonAsync<IEnumerable<TodoTaskModel>>().ConfigureAwait(false)
-                ?? Array.Empty<TodoTaskModel>();
+            return await res.Content.ReadFromJsonAsync<IEnumerable<TodoTaskModel>>()
+                   ?? Array.Empty<TodoTaskModel>();
         }
 
         public async Task UpdateStatusAsync(int taskId, bool status)
         {
-            await this.EnsureTokenAsync().ConfigureAwait(false);
-
-            var res = await this.http.PatchAsync($"/api/tasks/assigned/{taskId}/status?isCompleted={status}", null).ConfigureAwait(false);
-            if (!res.IsSuccessStatusCode)
-            {
-                throw new HttpRequestException($"Update status failed: {res.StatusCode}");
-            }
+            AddAuthHeader();
+            var res = await _http.PatchAsync($"api/tasks/assigned/{taskId}/status?isCompleted={status}", null);
+            res.EnsureSuccessStatusCode();
         }
 
         public async Task ReassignTaskAsync(int taskId, string newUserId)
         {
-            await this.EnsureTokenAsync().ConfigureAwait(false);
-
+            AddAuthHeader();
             var dto = new ReassignTaskDto { NewUserId = newUserId };
-
-            var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/tasks/assigned/{taskId}/assign")
+            var request = new HttpRequestMessage(HttpMethod.Patch, $"api/tasks/assigned/{taskId}/assign")
             {
-                Content = JsonContent.Create(dto),
+                Content = JsonContent.Create(dto)
             };
-
-            var res = await this.http.SendAsync(request).ConfigureAwait(false);
-
-            if (!res.IsSuccessStatusCode)
-            {
-                var error = await res.Content.ReadAsStringAsync().ConfigureAwait(false); // get body from API
-                throw new HttpRequestException($"Reassign failed: {res.StatusCode}, Details: {error}");
-            }
+            var res = await _http.SendAsync(request);
+            res.EnsureSuccessStatusCode();
         }
 
         public async Task<List<TodoUserModel>> GetAllUsersAsync()
         {
-            await this.EnsureTokenAsync().ConfigureAwait(false);
-
-            var res = await this.http.GetAsync("/api/users").ConfigureAwait(false);
-
-            if (!res.IsSuccessStatusCode)
-            {
-                throw new HttpRequestException($"Failed to fetch users: {res.StatusCode}");
-            }
-
-            // Deserialize into a list of UserModel
-            var users = await res.Content.ReadFromJsonAsync<List<TodoUserModel>>().ConfigureAwait(false);
-
-            return users ?? new List<TodoUserModel>();
+            AddAuthHeader();
+            var res = await _http.GetAsync("api/users");
+            res.EnsureSuccessStatusCode();
+            return await res.Content.ReadFromJsonAsync<List<TodoUserModel>>() ?? new List<TodoUserModel>();
         }
 
         public async Task<IEnumerable<TodoTaskModel>> SearchTasksAsync(
-            string? query = null,
-            bool? status = null,
-            DateTime? dueBefore = null,
-            string? assignedUserId = null)
+    string? query = null, bool? status = null, DateTime? dueBefore = null, string? assignedUserId = null)
         {
-            await this.EnsureTokenAsync().ConfigureAwait(false);
+            AddAuthHeader();
 
-            var url = "/api/tasks/search?";
+            var queryParams = new List<string>();
 
             if (!string.IsNullOrWhiteSpace(query))
             {
-                url += $"query={Uri.EscapeDataString(query)}&";
+                queryParams.Add($"query={Uri.EscapeDataString(query)}");
             }
 
             if (status.HasValue)
             {
-                url += $"status={status.Value}&";
+                queryParams.Add($"status={status.Value}");
             }
 
             if (dueBefore.HasValue)
             {
-                url += $"dueBefore={dueBefore.Value:yyyy-MM-dd}&";
+                queryParams.Add($"dueBefore={dueBefore.Value:yyyy-MM-dd}");
             }
 
             if (!string.IsNullOrWhiteSpace(assignedUserId))
             {
-                url += $"assignedUserId={Uri.EscapeDataString(assignedUserId)}&";
+                queryParams.Add($"assignedUserId={Uri.EscapeDataString(assignedUserId)}");
             }
 
-            // Remove trailing '&'
-            url = url.TrimEnd('&');
+            var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
+            var url = $"/api/tasks/search{queryString}";
 
-            try
-            {
-                var tasks = await this.http.GetFromJsonAsync<List<TodoTaskModel>>(url).ConfigureAwait(false);
-                return tasks ?? new List<TodoTaskModel>();
-            }
-            catch (HttpRequestException)
-            {
-                // Optionally log the error
-                return new List<TodoTaskModel>();
-            }
+            var tasks = await _http.GetFromJsonAsync<List<TodoTaskModel>>(url);
+            return tasks ?? new List<TodoTaskModel>();
         }
+
     }
 }

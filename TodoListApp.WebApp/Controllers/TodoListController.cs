@@ -1,114 +1,87 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TodoListApp.WebApi.Models;
 using TodoListApp.WebApp.Services;
 
-namespace TodoListApp.WebApp.Controllers
+namespace TodoListApp.WebApp.Controllers;
+
+public class TodoListController : Controller
 {
-    public class TodoListController : Controller
+    private readonly ITodoListWebApiService _todoListService;
+
+    public TodoListController(ITodoListWebApiService todoListService)
     {
-        private readonly ITodoListWebApiService todoListService;
+        _todoListService = todoListService;
+    }
 
-        public TodoListController(ITodoListWebApiService todoListService)
+    // ======================
+    // List all TodoLists
+    // ======================
+    public async Task<IActionResult> Index()
+    {
+        var lists = await _todoListService.GetTodoListsAsync();
+        return View(lists);
+    }
+
+    // ======================
+    // Create TodoList
+    // ======================
+    [HttpGet]
+    public IActionResult Create() => View();
+
+    [HttpPost]
+    public async Task<IActionResult> Create(TodoListModel list)
+    {
+        _ = ModelState.Remove(nameof(TodoListModel.OwnerId));
+
+        if (!ModelState.IsValid)
         {
-            this.todoListService = todoListService;
+            return View(list);
         }
 
-        public async Task<IActionResult> Index()
+        list.OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+
+        var success = await _todoListService.AddTodoListAsync(list);
+        if (!success)
         {
-            Console.WriteLine("Index hit!");
-            var lists = await this.todoListService.GetTodoListsAsync().ConfigureAwait(false);
-            Console.WriteLine($"Got {lists.Count()} lists");
-            return this.View(lists);
+            ModelState.AddModelError(string.Empty, "Failed to create todo list. Please try again.");
+            return View(list);
         }
 
-        [HttpGet]
-        public IActionResult Create()
+        return RedirectToAction(nameof(Index));
+    }
+
+    // ======================
+    // Delete TodoList
+    // ======================
+    public async Task<IActionResult> Delete(int id)
+    {
+        await _todoListService.DeleteTodoListAsync(id);
+        return RedirectToAction(nameof(Index));
+    }
+
+    // ======================
+    // Edit TodoList
+    // ======================
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var lists = await _todoListService.GetTodoListsAsync();
+        var list = lists.FirstOrDefault(x => x.Id == id);
+        return list == null ? NotFound() : View(list);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Edit(TodoListModel list)
+    {
+        _ = ModelState.Remove(nameof(TodoListModel.OwnerId));
+
+        if (!ModelState.IsValid)
         {
-            return this.View();
+            return View(list);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create(TodoListModel list)
-        {
-            // Remove OwnerId from ModelState entirely before validation
-            _ = this.ModelState.Remove(nameof(TodoListModel.OwnerId));
-
-            Console.WriteLine($"ModelState IsValid: {ModelState.IsValid}");
-
-            if (this.ModelState.IsValid)
-            {
-                try
-                {
-                    // Assign the current logged-in user as the owner
-                    list.OwnerId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
-                    Console.WriteLine($"Creating todo list for user: {list.OwnerId}");
-
-                    await this.todoListService.AddTodoListAsync(list).ConfigureAwait(false);
-                    Console.WriteLine("Todo list created successfully, redirecting to Index");
-
-                    return this.RedirectToAction(nameof(this.Index));
-                }
-                catch (HttpRequestException ex)
-                {
-                    Console.WriteLine($"HTTP Error creating todo list: {ex.Message}");
-                    this.ModelState.AddModelError(string.Empty, $"Error creating todo list: {ex.Message}");
-                }
-                catch (InvalidOperationException ex)
-                {
-                    Console.WriteLine($"Invalid operation error: {ex.Message}");
-                    this.ModelState.AddModelError(string.Empty, $"Error creating todo list: {ex.Message}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("ModelState errors:");
-                foreach (var key in this.ModelState.Keys)
-                {
-                    var state = this.ModelState[key];
-                    foreach (var error in state.Errors)
-                    {
-                        Console.WriteLine($" - {key}: {error.ErrorMessage}");
-                    }
-                }
-            }
-
-            return this.View(list);
-        }
-
-        // US03: Delete
-        public async Task<IActionResult> Delete(int id)
-        {
-            await this.todoListService.DeleteTodoListAsync(id).ConfigureAwait(false);
-            return this.RedirectToAction(nameof(this.Index));
-        }
-
-        // US04: Update
-        [HttpGet]
-        public async Task<IActionResult> Edit(int id)
-        {
-            var lists = await this.todoListService.GetTodoListsAsync().ConfigureAwait(false);
-            var list = lists.FirstOrDefault(x => x.Id == id);
-            if (list == null)
-            {
-                return this.NotFound();
-            }
-
-            return this.View(list);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Edit(TodoListModel list)
-        {
-            _ = this.ModelState.Remove(nameof(TodoListModel.OwnerId));
-
-            if (this.ModelState.IsValid)
-            {
-                await this.todoListService.UpdateTodoListAsync(list).ConfigureAwait(false);
-                return this.RedirectToAction(nameof(this.Index));
-            }
-
-            return this.View(list);
-        }
+        await _todoListService.UpdateTodoListAsync(list);
+        return RedirectToAction(nameof(Index));
     }
 }
