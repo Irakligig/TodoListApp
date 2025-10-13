@@ -6,12 +6,12 @@ namespace TodoListApp.WebApp.Services
 {
     public class UsersAuthWebApiService : IUsersAuthWebApiService
     {
-        private readonly HttpClient _http;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UsersAuthWebApiService(HttpClient http, IHttpContextAccessor httpContextAccessor)
+        public UsersAuthWebApiService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
         {
-            _http = http;
+            _httpClientFactory = httpClientFactory;
             _httpContextAccessor = httpContextAccessor;
         }
 
@@ -27,16 +27,18 @@ namespace TodoListApp.WebApp.Services
 
         public async Task<bool> RegisterAsync(string username, string email, string password, string fullName)
         {
+            var client = _httpClientFactory.CreateClient("WebApiClient");
             var model = new { Username = username, Email = email, Password = password, FullName = fullName };
-            var response = await _http.PostAsJsonAsync("api/auth/register", model);
+            var response = await client.PostAsJsonAsync("api/auth/register", model);
             return response.IsSuccessStatusCode;
         }
 
         public async Task<bool> LoginAsync(string username, string password)
         {
+            var client = _httpClientFactory.CreateClient("WebApiClient");
             Console.WriteLine($"Calling API login for {username}");
 
-            var response = await _http.PostAsJsonAsync("api/auth/login", new { Username = username, Password = password });
+            var response = await client.PostAsJsonAsync("api/auth/login", new { Username = username, Password = password });
             Console.WriteLine("API response status: " + response.StatusCode);
 
             if (!response.IsSuccessStatusCode)

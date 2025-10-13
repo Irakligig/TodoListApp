@@ -8,56 +8,52 @@ namespace TodoListApp.WebApp.Services
     public class TodoListWebApiService : ITodoListWebApiService
     {
         private readonly HttpClient _http;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IUsersAuthWebApiService _authService;
 
-        public TodoListWebApiService(HttpClient http, IHttpContextAccessor httpContextAccessor)
+        public TodoListWebApiService(IHttpClientFactory httpFactory, IUsersAuthWebApiService authService)
         {
-            _http = http;
-            _httpContextAccessor = httpContextAccessor;
+            _http = httpFactory.CreateClient("WebApiClient");
+            _authService = authService;
         }
 
-        private void AddAuthHeader()
+        private void AttachJwt()
         {
-            var token = _httpContextAccessor.HttpContext?.Request.Cookies["JwtToken"];
+            var token = _authService.JwtToken;
             if (!string.IsNullOrEmpty(token))
             {
-                _http.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", token);
+                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
         }
 
         public async Task<IEnumerable<TodoListModel>> GetTodoListsAsync()
         {
-            AddAuthHeader();
-            var response = await _http.GetAsync("api/todolist");
+            AttachJwt();
+            var res = await _http.GetAsync("/api/todolist");
+            res.EnsureSuccessStatusCode();
 
-            if (!response.IsSuccessStatusCode)
-            {
-                return Array.Empty<TodoListModel>();
-            }
-
-            return await response.Content.ReadFromJsonAsync<IEnumerable<TodoListModel>>() ?? Array.Empty<TodoListModel>();
+            return await res.Content.ReadFromJsonAsync<IEnumerable<TodoListModel>>()
+                   ?? Array.Empty<TodoListModel>();
         }
 
         public async Task<bool> AddTodoListAsync(TodoListModel newList)
         {
-            AddAuthHeader();
-            var response = await _http.PostAsJsonAsync("api/todolist", newList);
-            return response.IsSuccessStatusCode;
+            AttachJwt();
+            var res = await _http.PostAsJsonAsync("/api/todolist", newList);
+            res.EnsureSuccessStatusCode();
         }
 
         public async Task<bool> UpdateTodoListAsync(TodoListModel updatedList)
         {
-            AddAuthHeader();
-            var response = await _http.PutAsJsonAsync($"api/todolist/{updatedList.Id}", updatedList);
-            return response.IsSuccessStatusCode;
+            AttachJwt();
+            var res = await _http.PutAsJsonAsync($"/api/todolist/{updatedList.Id}", updatedList);
+            res.EnsureSuccessStatusCode();
         }
 
         public async Task<bool> DeleteTodoListAsync(int id)
         {
-            AddAuthHeader();
-            var response = await _http.DeleteAsync($"api/todolist/{id}");
-            return response.IsSuccessStatusCode;
+            AttachJwt();
+            var res = await _http.DeleteAsync($"/api/todolist/{id}");
+            res.EnsureSuccessStatusCode();
         }
     }
 }

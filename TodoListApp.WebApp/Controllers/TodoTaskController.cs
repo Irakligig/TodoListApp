@@ -1,15 +1,17 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using TodoListApp.WebApi.Models;
 using TodoListApp.WebApp.Services;
 
-namespace TodoListApp.WebApp.Controllers;
-
-public class TodoTaskController : Controller
+namespace TodoListApp.WebApp.Controllers
 {
-    private readonly ITodoTaskWebApiService _taskService;
-    private readonly ITodoCommentWebApiService _commentService;
-    private readonly ITodoTaskTagWebApiService _tagService;
+    [Authorize]
+    public class TodoTaskController : Controller
+    {
+        private readonly ITodoTaskWebApiService taskService;
+        private readonly ITodoCommentWebApiService commentService;
 
     public TodoTaskController(
         ITodoTaskWebApiService taskService,

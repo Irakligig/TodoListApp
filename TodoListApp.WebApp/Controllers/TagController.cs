@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using TodoListApp.WebApi.Models;
-using TodoListApp.WebApp.Services;
+using Microsoft.AspNetCore.Authorization;
 
-namespace TodoListApp.WebApp.Controllers
+namespace TodoListApp.WebApp.Controllers;
+[Authorize]
+public class TagController : Controller
 {
-    public class TagController : Controller
-    {
-        private readonly ITodoTaskTagWebApiService _tagService;
+    private readonly ITodoTaskTagWebApiService tagService;
 
         public TagController(ITodoTaskTagWebApiService tagService)
         {

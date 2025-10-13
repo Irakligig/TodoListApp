@@ -1,13 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TodoListApp.WebApi.Models;
 using TodoListApp.WebApp.Services;
 
-namespace TodoListApp.WebApp.Controllers
+namespace TodoListApp.WebApp.Controllers;
+[Authorize]
+[Route("Search")]
+public class SearchController : Controller
 {
-    [Route("Search")]
-    public class SearchController : Controller
-    {
-        private readonly ITodoTaskWebApiService _taskService;
+    private readonly ITodoTaskWebApiService taskService;
 
         public SearchController(ITodoTaskWebApiService taskService)
         {

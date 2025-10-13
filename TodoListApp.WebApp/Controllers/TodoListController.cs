@@ -1,33 +1,47 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using TodoListApp.WebApi.Models;
 using TodoListApp.WebApp.Services;
 
-namespace TodoListApp.WebApp.Controllers;
-
-public class TodoListController : Controller
+namespace TodoListApp.WebApp.Controllers
 {
-    private readonly ITodoListWebApiService _todoListService;
-
-    public TodoListController(ITodoListWebApiService todoListService)
+    [Authorize]
+    public class TodoListController : Controller
     {
-        _todoListService = todoListService;
-    }
+        private readonly ITodoListWebApiService todoListService;
+        private readonly IUsersAuthWebApiService authService;
 
-    // ======================
-    // List all TodoLists
-    // ======================
-    public async Task<IActionResult> Index()
-    {
-        var lists = await _todoListService.GetTodoListsAsync();
-        return View(lists);
-    }
+        public TodoListController(
+            ITodoListWebApiService todoListService,
+            IUsersAuthWebApiService authService)
+        {
+            this.todoListService = todoListService;
+            this.authService = authService;
+        }
 
-    // ======================
-    // Create TodoList
-    // ======================
-    [HttpGet]
-    public IActionResult Create() => View();
+
+        public async Task<IActionResult> Index()
+        {
+
+            // Check if JWT exists
+            if (string.IsNullOrEmpty(authService.JwtToken))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var lists = await todoListService.GetTodoListsAsync().ConfigureAwait(false);
+            return View(lists);
+        }
+
+
+
+        [HttpGet]
+        public IActionResult Create()
+        {
+            return this.View();
+        }
 
     [HttpPost]
     public async Task<IActionResult> Create(TodoListModel list)

@@ -1,65 +1,50 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using TodoListApp.WebApp.Helpers;
 using TodoListApp.WebApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ---------------------------
 // Add services to the container
+// ---------------------------
+
+// Controllers + Views
 builder.Services.AddControllersWithViews();
 
-// Needed to access cookies inside services
+// HttpContextAccessor (needed for reading cookies)
 builder.Services.AddHttpContextAccessor();
 
-var apiBase = new Uri("https://localhost:7001/");
+// Auth service (per HTTP request, scoped)
+builder.Services.AddScoped<IUsersAuthWebApiService, UsersAuthWebApiService>();
 
-// Register HttpClients
-builder.Services.AddHttpClient<ITodoListWebApiService, TodoListWebApiService>(client =>
+// ---------------------------
+// Register WebAPI services (also scoped)
+// ---------------------------
+builder.Services.AddScoped<ITodoListWebApiService, TodoListWebApiService>();
+builder.Services.AddScoped<ITodoTaskWebApiService, TodoTaskWebApiService>();
+builder.Services.AddScoped<ITodoTaskTagWebApiService, TodoTaskTagWebApiService>();
+builder.Services.AddScoped<ITodoCommentWebApiService, TodoCommentWebApiService>();
+
+// ---------------------------
+// Configure a shared HttpClient for all services
+// ---------------------------
+builder.Services.AddHttpClient("WebApiClient", client =>
 {
     client.BaseAddress = apiBase;
 });
 
-builder.Services.AddHttpClient<ITodoTaskWebApiService, TodoTaskWebApiService>(client =>
-{
-    client.BaseAddress = apiBase;
-});
+// Add authentication
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login";   // redirect here if not authenticated
+        options.LogoutPath = "/Auth/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromHours(2);
+        options.SlidingExpiration = true;
+    });
 
-builder.Services.AddHttpClient<ITodoTaskTagWebApiService, TodoTaskTagWebApiService>(client =>
-{
-    client.BaseAddress = apiBase;
-});
-
-builder.Services.AddHttpClient<ITodoCommentWebApiService, TodoCommentWebApiService>(client =>
-{
-    client.BaseAddress = apiBase;
-});
-
-// Auth service singleton
-builder.Services.AddSingleton<IUsersAuthWebApiService>(sp =>
-{
-    var http = new HttpClient { BaseAddress = new Uri("https://localhost:7001/") };
-    var httpContextAccessor = sp.GetRequiredService<IHttpContextAccessor>();
-    return new UsersAuthWebApiService(http, httpContextAccessor);
-});
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddCookie(options =>
-{
-    options.LoginPath = "/Auth/Login";
-    options.LogoutPath = "/Auth/Logout";
-})
-.AddJwtBearer(options =>
-{
-    options.Authority = "https://localhost:7001/"; // your API base
-    options.Audience = "TodoListApi";
-    options.RequireHttpsMetadata = true;
-});
-
-
+// ---------------------------
+// Build app
+// ---------------------------
 var app = builder.Build();
 
 // Middleware
@@ -73,7 +58,8 @@ app.UseGlobalExceptionHandler();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseCookiePolicy();
+
+// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
