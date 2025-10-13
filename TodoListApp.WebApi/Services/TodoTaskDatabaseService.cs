@@ -8,21 +8,28 @@ namespace TodoListApp.WebApi.Services;
 public class TodoTaskDatabaseService : ITodoTaskDatabaseService
 {
     private readonly TodoListDbContext context;
+    private readonly IUsersDatabaseService usersService; // inject user service
 
-    public TodoTaskDatabaseService(TodoListDbContext context)
+    public TodoTaskDatabaseService(
+        TodoListDbContext context,
+        IUsersDatabaseService usersService) // constructor injection
     {
         this.context = context;
+        this.usersService = usersService;
     }
 
     public async Task<IEnumerable<TodoTask>> GetAllTasksAsync(int todoListId, string ownerId)
     {
+        // Ensure the list belongs to the user
         var list = await this.context.TodoLists.FindAsync(todoListId);
 
+        // If the list is NULL, throw KeyNotFoundException (maps to 404 in controller)
         if (list == null)
         {
             throw new KeyNotFoundException($"Todo list with Id {todoListId} not found.");
         }
 
+        // If the list exists but owner doesn't match (using case-insensitive check for robustness)
         if (!string.Equals(list.OwnerId, ownerId, StringComparison.OrdinalIgnoreCase))
         {
             throw new UnauthorizedAccessException("You do not have access to this todo list.");
@@ -34,6 +41,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             .Where(t => t.TodoListId == todoListId)
             .Select(t => new TodoTask()
             {
+                // Data mapping (projection) must be complete to avoid ID=0
                 Id = t.Id,
                 Name = t.Name,
                 Description = t.Description,
@@ -68,14 +76,12 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             DueDate = task.DueDate,
             IsCompleted = task.IsCompleted,
             TodoListId = task.TodoListId,
-            AssignedUserId = task.AssignedUserId
         };
     }
 
     public async Task AddTaskAsync(TodoTask task, string ownerId)
     {
         var list = await this.context.TodoLists.FindAsync(task.TodoListId);
-
         if (list == null)
         {
             throw new KeyNotFoundException($"Todo list with Id {task.TodoListId} not found.");
@@ -94,13 +100,13 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             IsCompleted = task.IsCompleted,
             TodoListId = task.TodoListId,
             OwnerId = ownerId,
-            AssignedUserId = task.AssignedUserId
+            AssignedUserId = task.AssignedUserId,
         };
 
-        await this.context.TodoTasks.AddAsync(entity);
-        await this.context.SaveChangesAsync();
+        _ = await this.context.TodoTasks.AddAsync(entity);
+        _ = await this.context.SaveChangesAsync();
 
-        task.Id = entity.Id;
+        task.Id = entity.Id; // return generated ID
     }
 
     public async Task UpdateTaskAsync(TodoTask task, string ownerId)
@@ -124,7 +130,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
         entity.IsCompleted = task.IsCompleted;
         entity.AssignedUserId = task.AssignedUserId;
 
-        await this.context.SaveChangesAsync();
+        _ = await this.context.SaveChangesAsync();
     }
 
     public async Task DeleteTaskAsync(int taskId, string ownerId)
@@ -142,20 +148,22 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             throw new UnauthorizedAccessException("You do not have access to delete this task.");
         }
 
-        this.context.TodoTasks.Remove(entity);
-        await this.context.SaveChangesAsync();
+        _ = this.context.TodoTasks.Remove(entity);
+        _ = await this.context.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<TodoTask>> GetAssignedTasksAsync(string userId, string? status = null, string? sortby = null)
+    public async Task<IEnumerable<TodoTask>> GetAssignedTasksAsync(string userId, string? status = null, string? sortby = null) // Changed to sortBy
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
             throw new ArgumentException("User ID cannot be null or empty.");
         }
 
+        // Start with all tasks assigned to the user
         var query = this.context.TodoTasks.AsQueryable();
         query = query.Where(t => t.AssignedUserId == userId);
 
+        // Apply status filter
         if (!string.IsNullOrWhiteSpace(status))
         {
             switch (status.ToLower())
@@ -174,8 +182,26 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             }
         }
 
-        // Optional sorting (not fully implemented)
-        // TODO: implement sortBy if needed
+        // Apply sorting - use sortBy instead of sortby
+
+        // NOT WORKING YET
+        //if (!string.IsNullOrWhiteSpace(sortby))
+        //{
+        //    query = sortBy.ToLower() switch
+        //    {
+        //        "duedate" => query.OrderBy(t => t.DueDate.HasValue).ThenBy(t => t.DueDate),
+        //        "duedate_desc" => query.OrderByDescending(t => t.DueDate.HasValue).ThenByDescending(t => t.DueDate),
+        //        "name" or "title" => query.OrderBy(t => t.Name),
+        //        "name_desc" or "title_desc" => query.OrderByDescending(t => t.Name),
+        //        "status" => query.OrderBy(t => t.IsCompleted), // Sort by completion status
+        //        "status_desc" => query.OrderByDescending(t => t.IsCompleted),
+        //        _ => query.OrderBy(t => t.Id)
+        //    };
+        //}
+        //else
+        //{
+        //    query = query.OrderBy(t => t.Id);
+        //}
 
         return await query.Select(t => new TodoTask
         {
@@ -185,26 +211,31 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             DueDate = t.DueDate,
             IsCompleted = t.IsCompleted,
             TodoListId = t.TodoListId,
-            AssignedUserId = t.AssignedUserId
+            AssignedUserId = t.AssignedUserId,
         }).ToListAsync();
     }
 
     public async Task UpdateTaskStatusAsync(int taskId, bool isCompleted, string userId)
     {
-        var task = await this.context.TodoTasks.FirstOrDefaultAsync(t => t.Id == taskId && t.AssignedUserId == userId);
+        // Find task assigned to the current user
+        var task = await this.context.TodoTasks
+            .FirstOrDefaultAsync(t => t.Id == taskId && t.AssignedUserId == userId);
 
         if (task == null)
         {
             throw new KeyNotFoundException($"Task with Id {taskId} not found or not assigned to user.");
         }
 
+        // Update status
         task.IsCompleted = isCompleted;
-        await this.context.SaveChangesAsync();
+
+        _ = await this.context.SaveChangesAsync();
     }
 
     public async Task<TodoTask?> GetTaskByIdForAssignedUserAsync(int taskId, string userId)
     {
-        var task = await this.context.TodoTasks.Include(t => t.TodoList)
+        var task = await this.context.TodoTasks
+            .Include(t => t.TodoList)
             .FirstOrDefaultAsync(t => t.Id == taskId && t.AssignedUserId == userId);
 
         if (task == null)
@@ -220,13 +251,15 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             DueDate = task.DueDate,
             IsCompleted = task.IsCompleted,
             TodoListId = task.TodoListId,
-            AssignedUserId = task.AssignedUserId
+            AssignedUserId = task.AssignedUserId,
         };
     }
 
     public async Task ReassignTaskAsync(int taskId, string currentUserId, string newUserId)
     {
-        var task = await this.context.TodoTasks.Include(t => t.TodoList)
+        // 1. Load task including its TodoList
+        var task = await this.context.TodoTasks
+            .Include(t => t.TodoList)
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null)
@@ -234,30 +267,46 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             throw new KeyNotFoundException($"Task {taskId} not found.");
         }
 
+        // 2. Ensure the current user is the one currently assigned
         if (task.AssignedUserId != currentUserId)
         {
             throw new UnauthorizedAccessException("You are not allowed to reassign this task.");
         }
 
-        // With Identity, we assume newUserId exists. Optional: validate via UserManager
+        // 3. Validate new user exists (if users are in separate DB, call UsersService)
+        var newUser = await this.usersService.GetByIdAsync(newUserId);
+        if (newUser == null)
+        {
+            throw new KeyNotFoundException($"User {newUserId} not found.");
+        }
 
+        // 4. Update assignment
         task.AssignedUserId = newUserId;
-        await this.context.SaveChangesAsync();
+        _ = await this.context.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<TodoTask>> SearchTasksAsync(string userId, string? query, bool? status, DateTime? dueBefore, string? assignedUserId)
+    public async Task<IEnumerable<TodoTask>> SearchTasksAsync(
+     string userId,
+     string? query,
+     bool? status,
+     DateTime? dueBefore,
+     string? assignedUserId)
     {
-        if (string.IsNullOrWhiteSpace(userId))
+        if (string.IsNullOrEmpty(userId))
         {
             throw new ArgumentException("User ID is required.", nameof(userId));
         }
 
-        var tasks = context.TodoTasks.Include(t => t.TodoList)
+        // Base query
+        var tasks = context.TodoTasks
+            .Include(t => t.TodoList)
             .Where(t => t.TodoList.OwnerId == userId);
 
+        // Optional filters
         if (!string.IsNullOrWhiteSpace(query))
         {
-            tasks = tasks.Where(t => t.Name.Contains(query) || (t.Description ?? "").Contains(query));
+            tasks = tasks.Where(t =>
+                t.Name.Contains(query) || (t.Description ?? "").Contains(query));
         }
 
         if (status.HasValue)
@@ -270,21 +319,25 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             tasks = tasks.Where(t => t.DueDate <= dueBefore.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(assignedUserId))
+        if (!string.IsNullOrEmpty(assignedUserId))
         {
             tasks = tasks.Where(t => t.AssignedUserId == assignedUserId);
         }
 
-        return await tasks.AsNoTracking()
+        // Execute query
+        var result = await tasks.AsNoTracking()
             .Select(t => new TodoTask
             {
                 Id = t.Id,
                 Name = t.Name,
                 Description = t.Description,
-                DueDate = t.DueDate,
                 IsCompleted = t.IsCompleted,
+                DueDate = t.DueDate,
                 TodoListId = t.TodoListId,
-                AssignedUserId = t.AssignedUserId
-            }).ToListAsync();
+                AssignedUserId = t.AssignedUserId,
+            })
+            .ToListAsync();
+
+        return result;
     }
 }

@@ -1,11 +1,9 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using TodoListApp.Services.Database;
-using TodoListApp.Services.Database.Entities;
 using TodoListApp.WebApi.Controllers;
 using TodoListApp.WebApi.Services;
 
@@ -18,10 +16,7 @@ builder.Services.AddDbContext<TodoListDbContext>(options =>
 builder.Services.AddDbContext<UsersDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("UsersDb")));
 
-builder.Services.AddIdentity<User, IdentityRole>()
-    .AddEntityFrameworkStores<UsersDbContext>()
-    .AddDefaultTokenProviders();
-
+builder.Services.AddScoped<IUsersDatabaseService, TodoUsersDatabaseService>();
 builder.Services.AddScoped<ITodoListDatabaseService, TodoListDatabaseService>();
 builder.Services.AddScoped<ITodoTaskDatabaseService, TodoTaskDatabaseService>();
 builder.Services.AddScoped<ITodoTaskTagDatabaseService, TodoTaskTagDatabaseService>();
@@ -32,8 +27,9 @@ builder.Services.AddControllers()
     .AddApplicationPart(typeof(TodoTaskTagController).Assembly);
 
 // ===== JWT CONFIG =====
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
+var jwtKey = "YourSuperSecretKey123!"; // must match your frontend expectations
+var jwtIssuer = "TodoListApp";
+var jwtAudience = "TodoListAppUsers";
 
 builder.Services.AddAuthentication(options =>
 {
@@ -50,12 +46,11 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(key)
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
     };
 });
-
 
 // ===== SWAGGER =====
 builder.Services.AddEndpointsApiExplorer();
@@ -114,5 +109,26 @@ app.UseSwaggerUI(c =>
 
 // ===== MAP CONTROLLERS =====
 app.MapControllers();
+
+// ===== TOKEN ENDPOINT FOR DEV =====
+app.MapGet("/api/token", () =>
+{
+    var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+    var key = Encoding.UTF8.GetBytes(jwtKey);
+    var tokenDescriptor = new SecurityTokenDescriptor
+    {
+        Subject = new System.Security.Claims.ClaimsIdentity(new[]
+        {
+            new System.Security.Claims.Claim("sub", "dev-user"),
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "dev-user"),
+        }),
+        Expires = DateTime.UtcNow.AddHours(1),
+        Issuer = jwtIssuer,
+        Audience = jwtAudience,
+        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+    };
+    var token = tokenHandler.CreateToken(tokenDescriptor);
+    return Results.Ok(new { token = tokenHandler.WriteToken(token) });
+});
 
 await app.RunAsync();
