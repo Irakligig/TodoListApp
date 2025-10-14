@@ -1,23 +1,31 @@
 using Microsoft.AspNetCore.Mvc;
-using TodoListApp.WebApi.Services;
+using Microsoft.EntityFrameworkCore;
+using TodoListApp.Services.Database;
+using TodoListApp.Services.Database.Entities; // 👈 Make sure this is included!
 
-namespace TodoListApp.WebApi.Controllers;
-
-[ApiController]
-[Route("api/users")]
-public class TodoUsersController : ControllerBase
+namespace TodoListApp.WebApi.Controllers
 {
-    private readonly IUsersDatabaseService usersService;
-
-    public TodoUsersController(IUsersDatabaseService usersService)
+    [ApiController]
+    [Route("api/users")]
+    public class TodoUsersController : ControllerBase
     {
-        this.usersService = usersService;
-    }
+        private readonly UsersDbContext _usersDb;
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        var users = await this.usersService.GetAllAsync();
-        return this.Ok(users.Select(u => new { u.Id, u.FullName }));
+        public TodoUsersController(UsersDbContext usersDb)
+        {
+            _usersDb = usersDb;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var users = await _usersDb.Users.ToListAsync();
+
+            return Ok(users.Select(u => new
+            {
+                Id = u.Id,
+                FullName = u.FullName// ✅ Explicit naming avoids ambiguity
+            }));
+        }
     }
 }
