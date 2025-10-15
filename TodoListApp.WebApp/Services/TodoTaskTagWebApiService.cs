@@ -11,9 +11,10 @@ public class TodoTaskTagWebApiService : ITodoTaskTagWebApiService
     private readonly HttpClient _http;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public TodoTaskTagWebApiService(HttpClient http, IHttpContextAccessor httpContextAccessor)
+    // Constructor using IHttpClientFactory style
+    public TodoTaskTagWebApiService(IHttpClientFactory httpFactory, IHttpContextAccessor httpContextAccessor)
     {
-        _http = http;
+        _http = httpFactory.CreateClient("WebApiClient"); // already has BaseAddress set in Program.cs
         _httpContextAccessor = httpContextAccessor;
     }
 

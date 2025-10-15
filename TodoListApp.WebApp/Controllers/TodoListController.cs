@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using TodoListApp.WebApi.Models;
 using TodoListApp.WebApp.Services;
 
@@ -43,59 +42,60 @@ namespace TodoListApp.WebApp.Controllers
             return this.View();
         }
 
-    [HttpPost]
-    public async Task<IActionResult> Create(TodoListModel list)
-    {
-        _ = ModelState.Remove(nameof(TodoListModel.OwnerId));
-
-        if (!ModelState.IsValid)
+        [HttpPost]
+        public async Task<IActionResult> Create(TodoListModel list)
         {
-            return View(list);
+            _ = ModelState.Remove(nameof(TodoListModel.OwnerId));
+
+            if (!ModelState.IsValid)
+            {
+                return View(list);
+            }
+
+            list.OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+
+            var success = await todoListService.AddTodoListAsync(list);
+            if (!success)
+            {
+                ModelState.AddModelError(string.Empty, "Failed to create todo list. Please try again.");
+                return View(list);
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
-        list.OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
-
-        var success = await _todoListService.AddTodoListAsync(list);
-        if (!success)
+        // ======================
+        // Delete TodoList
+        // ======================
+        public async Task<IActionResult> Delete(int id)
         {
-            ModelState.AddModelError(string.Empty, "Failed to create todo list. Please try again.");
-            return View(list);
+            await todoListService.DeleteTodoListAsync(id);
+            return RedirectToAction(nameof(Index));
         }
 
-        return RedirectToAction(nameof(Index));
-    }
-
-    // ======================
-    // Delete TodoList
-    // ======================
-    public async Task<IActionResult> Delete(int id)
-    {
-        await _todoListService.DeleteTodoListAsync(id);
-        return RedirectToAction(nameof(Index));
-    }
-
-    // ======================
-    // Edit TodoList
-    // ======================
-    [HttpGet]
-    public async Task<IActionResult> Edit(int id)
-    {
-        var lists = await _todoListService.GetTodoListsAsync();
-        var list = lists.FirstOrDefault(x => x.Id == id);
-        return list == null ? NotFound() : View(list);
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Edit(TodoListModel list)
-    {
-        _ = ModelState.Remove(nameof(TodoListModel.OwnerId));
-
-        if (!ModelState.IsValid)
+        // ======================
+        // Edit TodoList
+        // ======================
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
         {
-            return View(list);
+            var lists = await todoListService.GetTodoListsAsync();
+            var list = lists.FirstOrDefault(x => x.Id == id);
+            return list == null ? NotFound() : View(list);
         }
 
-        await _todoListService.UpdateTodoListAsync(list);
-        return RedirectToAction(nameof(Index));
+        [HttpPost]
+        public async Task<IActionResult> Edit(TodoListModel list)
+        {
+            _ = ModelState.Remove(nameof(TodoListModel.OwnerId));
+
+            if (!ModelState.IsValid)
+            {
+                return View(list);
+            }
+
+            await todoListService.UpdateTodoListAsync(list);
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

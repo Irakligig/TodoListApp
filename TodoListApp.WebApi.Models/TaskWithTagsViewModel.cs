@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 namespace TodoListApp.WebApi.Models;
 public class TaskWithTagsViewModel : TodoTaskModel
 {
-    public string NewTag { get; set; } = string.Empty; // for adding tags
+    public string? NewTag { get; set; } // for adding tags
 
-    public new int TodoListId { get; set; } // Parent list ID
 }

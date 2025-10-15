@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using TodoListApp.WebApp.Helpers;
 using TodoListApp.WebApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,7 +24,7 @@ builder.Services.AddScoped<ITodoListWebApiService, TodoListWebApiService>();
 builder.Services.AddScoped<ITodoTaskWebApiService, TodoTaskWebApiService>();
 builder.Services.AddScoped<ITodoTaskTagWebApiService, TodoTaskTagWebApiService>();
 builder.Services.AddScoped<ITodoCommentWebApiService, TodoCommentWebApiService>();
-
+var apiBase = new Uri("https://localhost:7001/");
 // ---------------------------
 // Configure a shared HttpClient for all services
 // ---------------------------

@@ -40,6 +40,7 @@ namespace TodoListApp.WebApp.Services
             AttachJwt();
             var res = await _http.PostAsJsonAsync("/api/todolist", newList);
             res.EnsureSuccessStatusCode();
+            return res.IsSuccessStatusCode; // Return true if request succeeded
         }
 
         public async Task<bool> UpdateTodoListAsync(TodoListModel updatedList)
@@ -47,6 +48,7 @@ namespace TodoListApp.WebApp.Services
             AttachJwt();
             var res = await _http.PutAsJsonAsync($"/api/todolist/{updatedList.Id}", updatedList);
             res.EnsureSuccessStatusCode();
+            return res.IsSuccessStatusCode;
         }
 
         public async Task<bool> DeleteTodoListAsync(int id)
@@ -54,6 +56,7 @@ namespace TodoListApp.WebApp.Services
             AttachJwt();
             var res = await _http.DeleteAsync($"/api/todolist/{id}");
             res.EnsureSuccessStatusCode();
+            return res.IsSuccessStatusCode;
         }
     }
 }

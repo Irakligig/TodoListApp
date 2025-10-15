@@ -41,14 +41,22 @@
         {
             var overdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
             <tr class="@(overdue ? "table-danger" : "")">
-                <td>@task.Name</td>
+                <td>
+                    <a asp-controller="TodoTask"
+                       asp-action="Details"
+                       asp-route-listId="@task.TodoListId"
+                       asp-route-id="@task.Id">
+                        @task.Name
+                    </a>
+                </td>
+
                 <td>@(task.IsCompleted ? "Completed" : "Pending")</td>
                 <td>@task.DueDate?.ToString("yyyy-MM-dd")</td>
                 <td>
                     @if (!task.IsCompleted)
                     {
                         <form asp-action="UpdateStatus" method="post" style="display:inline">
-                            <input type="hidden" name="id" value="@task.Id" />
+                            <input type="hidden" name="taskId" value="@task.Id" />
                             <input type="hidden" name="status" value="Completed" />
                             <button type="submit" class="btn btn-sm btn-success">Mark Completed</button>
                         </form>
@@ -56,7 +64,7 @@
                     else
                     {
                         <form asp-action="UpdateStatus" method="post" style="display:inline">
-                            <input type="hidden" name="id" value="@task.Id" />
+                            <input type="hidden" name="taskId" value="@task.Id" />
                             <input type="hidden" name="status" value="Pending" />
                             <button type="submit" class="btn btn-sm btn-warning">Mark Pending</button>
                         </form>

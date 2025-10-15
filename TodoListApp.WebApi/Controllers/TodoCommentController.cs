@@ -1,42 +1,110 @@
-using System.Net.Http;
-using System.Net.Http.Json;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using System.Linq;
 using TodoListApp.WebApi.Models;
+using TodoListApp.WebApi.Services;
 
-namespace TodoListApp.WebApp.Services
+namespace TodoListApp.WebApi.Controllers
 {
-    public class TodoCommentWebApiService : ITodoCommentWebApiService
+    [Authorize]
+    [ApiController]
+    [Route("api/tasks/{taskId:int}/comments")]
+    public class TodoCommentController : ControllerBase
     {
-        private readonly HttpClient _httpClient;
+        private readonly ITodoCommentDatabaseService _commentService;
 
-        public TodoCommentWebApiService(HttpClient httpClient)
+        public TodoCommentController(ITodoCommentDatabaseService commentService)
         {
-            _httpClient = httpClient;
+            _commentService = commentService;
         }
 
-        public async Task<IEnumerable<TodoCommentModel>> GetCommentsAsync(int taskId)
+        // ✅ GET: api/tasks/{taskId}/comments
+        [HttpGet]
+        public async Task<ActionResult<List<TodoCommentModel>>> GetComments(int taskId)
         {
-            var comments = await _httpClient.GetFromJsonAsync<List<TodoCommentModel>>($"api/tasks/{taskId}/comments");
-            return comments ?? new List<TodoCommentModel>();
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var comments = await _commentService.GetByTaskIdAsync(taskId, userId);
+
+            var models = comments.Select(c => new TodoCommentModel
+            {
+                Id = c.Id,
+                TaskId = c.TaskId,
+                UserId = c.UserId,
+                Text = c.Text,
+                CreatedAt = c.CreatedAt
+            }).ToList();
+
+            return Ok(models);
         }
 
-        public async Task AddCommentAsync(int taskId, string text)
+        // ✅ POST: api/tasks/{taskId}/comments
+        [HttpPost]
+        public async Task<ActionResult<TodoCommentModel>> AddComment(int taskId, [FromBody] TodoCommentCreateModel model)
         {
-            var model = new TodoCommentCreateModel { Text = text };
-            var response = await _httpClient.PostAsJsonAsync($"api/tasks/{taskId}/comments", model);
-            response.EnsureSuccessStatusCode();
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(model.Text))
+            {
+                return BadRequest("Comment text is required.");
+            }
+
+            var comment = await _commentService.AddCommentAsync(taskId, userId, model.Text);
+
+            var result = new TodoCommentModel
+            {
+                Id = comment.Id,
+                TaskId = comment.TaskId,
+                UserId = comment.UserId,
+                Text = comment.Text,
+                CreatedAt = comment.CreatedAt
+            };
+
+            return CreatedAtAction(nameof(GetComments), new { taskId }, result);
         }
 
-        public async Task EditCommentAsync(int taskId, int commentId, string newText)
+        // ✅ PUT: api/tasks/{taskId}/comments/{commentId}
+        [HttpPut("{commentId:int}")]
+        public async Task<IActionResult> EditComment(int commentId, [FromBody] TodoCommentEditModel model)
         {
-            var model = new TodoCommentEditModel { Text = newText };
-            var response = await _httpClient.PutAsJsonAsync($"api/tasks/{taskId}/comments/{commentId}", model);
-            response.EnsureSuccessStatusCode();
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(model.Text))
+            {
+                return BadRequest("New text is required.");
+            }
+
+            await _commentService.EditCommentAsync(commentId, userId, model.Text);
+
+            return NoContent();
         }
 
-        public async Task DeleteCommentAsync(int taskId, int commentId)
+        // ✅ DELETE: api/tasks/{taskId}/comments/{commentId}
+        [HttpDelete("{commentId:int}")]
+        public async Task<IActionResult> DeleteComment(int commentId)
         {
-            var response = await _httpClient.DeleteAsync($"api/tasks/{taskId}/comments/{commentId}");
-            response.EnsureSuccessStatusCode();
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            await _commentService.DeleteCommentAsync(commentId, userId);
+
+            return NoContent();
         }
     }
 }

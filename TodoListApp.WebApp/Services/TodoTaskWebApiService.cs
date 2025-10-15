@@ -10,9 +10,10 @@ namespace TodoListApp.WebApp.Services
         private readonly HttpClient _http;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public TodoTaskWebApiService(HttpClient http, IHttpContextAccessor httpContextAccessor)
+        // Constructor using IHttpClientFactory
+        public TodoTaskWebApiService(IHttpClientFactory httpFactory, IHttpContextAccessor httpContextAccessor)
         {
-            _http = http;
+            _http = httpFactory.CreateClient("WebApiClient");
             _httpContextAccessor = httpContextAccessor;
         }
 

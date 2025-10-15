@@ -10,15 +10,16 @@ namespace TodoListApp.WebApp.Controllers
     {
         private readonly ITodoTaskWebApiService taskService;
         private readonly ITodoCommentWebApiService commentService;
+        private readonly ITodoTaskTagWebApiService tagService;
 
         public TodoTaskController(
             ITodoTaskWebApiService taskService,
             ITodoCommentWebApiService commentService,
             ITodoTaskTagWebApiService tagService)
         {
-            taskService = taskService;
-            commentService = commentService;
-            tagService = tagService;
+            this.taskService = taskService;
+            this.commentService = commentService;
+            this.tagService = tagService;
         }
 
         public async Task<IActionResult> Index(int listId)
@@ -64,22 +65,22 @@ namespace TodoListApp.WebApp.Controllers
                 return this.View(task);
             }
 
-            await _taskService.CreateAsync(task.TodoListId, task).ConfigureAwait(false);
+            await taskService.CreateAsync(task.TodoListId, task).ConfigureAwait(false);
             return this.RedirectToAction("Index", new { listId = task.TodoListId });
         }
 
         // GET: /TodoTask/Edit/1034?listId=123
         public async Task<IActionResult> Edit(int listId, int id)
         {
-            var task = await _taskService.GetByIdAsync(listId, id);
+            var task = await taskService.GetByIdAsync(listId, id);
             if (task == null)
             {
                 return NotFound();
             }
 
-            var tags = await _tagService.GetTagsForTaskAsync(id);
-            var comments = await _commentService.GetCommentsAsync(id);
-            var users = await _taskService.GetAllUsersAsync();
+            var tags = await tagService.GetTagsForTaskAsync(id);
+            var comments = await commentService.GetCommentsAsync(id);
+            var users = await taskService.GetAllUsersAsync();
 
             var model = new TaskWithTagsViewModel
             {
@@ -106,10 +107,22 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(TaskWithTagsViewModel model)
         {
+
             if (!ModelState.IsValid)
             {
+
+                // Print validation errors to console
+                foreach (var key in ModelState.Keys)
+                {
+                    var state = ModelState[key];
+                    foreach (var error in state.Errors)
+                    {
+                        Console.WriteLine($"Field: {key}, Error: {error.ErrorMessage}");
+                    }
+                }
+
                 ViewBag.ListId = model.TodoListId;
-                ViewBag.Users = await _taskService.GetAllUsersAsync();
+                ViewBag.Users = await taskService.GetAllUsersAsync();
                 return View(model);
             }
 
@@ -125,7 +138,7 @@ namespace TodoListApp.WebApp.Controllers
                 AssignedUserId = model.AssignedUserId
             };
 
-            await _taskService.UpdateAsync(model.TodoListId, model.Id, apiModel);
+            await taskService.UpdateAsync(model.TodoListId, model.Id, apiModel);
 
             return RedirectToAction("Index", new { listId = model.TodoListId });
         }
@@ -142,7 +155,7 @@ namespace TodoListApp.WebApp.Controllers
                 return RedirectToAction("Edit", new { listId, id = taskId });
             }
 
-            await _commentService.AddCommentAsync(taskId, text).ConfigureAwait(false);
+            await commentService.AddCommentAsync(taskId, text).ConfigureAwait(false);
             return RedirectToAction("Edit", new { listId, id = taskId });
         }
 
@@ -156,7 +169,7 @@ namespace TodoListApp.WebApp.Controllers
                 return RedirectToAction("Edit", new { listId, id = taskId });
             }
 
-            await _commentService.EditCommentAsync(taskId, commentId, text).ConfigureAwait(false);
+            await commentService.EditCommentAsync(taskId, commentId, text).ConfigureAwait(false);
             return RedirectToAction("Edit", new { listId, id = taskId });
         }
 
@@ -164,7 +177,90 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteComment(int listId, int taskId, int commentId)
         {
-            await _commentService.DeleteCommentAsync(taskId, commentId).ConfigureAwait(false);
+            await commentService.DeleteCommentAsync(taskId, commentId).ConfigureAwait(false);
             return RedirectToAction("Edit", new { listId, id = taskId });
         }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateStatus(int taskId, string status)
+        {
+            bool isCompleted = status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+            await taskService.UpdateStatusAsync(taskId, isCompleted);
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReassignTask(int taskId, string newUserId)
+        {
+            if (!string.IsNullOrWhiteSpace(newUserId))
+            {
+                await taskService.ReassignTaskAsync(taskId, newUserId);
+            }
+            return RedirectToAction("Index");
+        }
+
+
+        // GET: /TodoTask/Details/1046?listId=37
+        public async Task<IActionResult> Details(int listId, int id)
+        {
+            var task = await taskService.GetByIdAsync(listId, id);
+            if (task == null)
+            {
+                return NotFound();
+            }
+
+            var tags = await tagService.GetTagsForTaskAsync(id);
+            var comments = await commentService.GetCommentsAsync(id);
+
+            var model = new TaskWithTagsViewModel
+            {
+                Id = task.Id,
+                Name = task.Name,
+                Description = task.Description,
+                DueDate = task.DueDate,
+                IsCompleted = task.IsCompleted,
+                TodoListId = task.TodoListId,
+                AssignedUserId = task.AssignedUserId,
+                Tags = tags,
+                Comments = comments.ToList(),
+                NewTag = string.Empty
+            };
+
+            ViewBag.ListId = listId;
+            return View(model);
+        }
+
+        // GET: /TodoTask/Delete/1046?listId=37
+        public async Task<IActionResult> Delete(int listId, int id)
+        {
+            var task = await taskService.GetByIdAsync(listId, id);
+            if (task == null)
+            {
+                return NotFound();
+            }
+
+            return View(task); // A simple confirmation page
+        }
+
+
+        public async Task<IActionResult> AssignedTasks(string? status, string? sortBy)
+        {
+            try
+            {
+                var tasks = await taskService.GetAssignedAsync(status, sortBy);
+                ViewBag.Status = status ?? "";
+                ViewBag.SortBy = sortBy ?? "";
+                ViewBag.Users = await taskService.GetAllUsersAsync();
+                return View(tasks);
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Error"] = $"API error: {ex.Message}";
+                return RedirectToAction("Index", "TodoList");
+            }
+        }
     }
+}
