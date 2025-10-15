@@ -9,15 +9,22 @@ namespace TodoListApp.WebApp.Controllers;
 public class SearchController : Controller
 {
     private readonly ITodoTaskWebApiService taskService;
+    private readonly IUsersAuthWebApiService authService;
 
-    public SearchController(ITodoTaskWebApiService taskService)
+    public SearchController(ITodoTaskWebApiService taskService,IUsersAuthWebApiService authService)
     {
         this.taskService = taskService;
+        this.authService = authService;
     }
 
     // GET: /Search
     public IActionResult Index()
     {
+        if (string.IsNullOrEmpty(authService.JwtToken))
+        {
+            return this.RedirectToAction("Login", "Auth");
+        }
+
         return this.View(new SearchViewModel());
     }
 

@@ -11,6 +11,11 @@ using TodoListApp.WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ===== Logging =====
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
 // ===== DB CONTEXT & SERVICES =====
 builder.Services.AddDbContext<TodoListDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("TodoListDb")));

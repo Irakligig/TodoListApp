@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TodoListApp.Services.Database;
 using TodoListApp.Services.Database.Entities;
 using TodoListApp.WebApi.Data;
@@ -9,15 +10,19 @@ namespace TodoListApp.WebApi.Services;
 public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
 {
     private readonly TodoListDbContext context;
+    private readonly ILogger<TodoTaskTagDatabaseService> logger;
 
-    public TodoTaskTagDatabaseService(TodoListDbContext context)
+    public TodoTaskTagDatabaseService(TodoListDbContext context, ILogger<TodoTaskTagDatabaseService> logger)
     {
         this.context = context;
+        this.logger = logger;
     }
 
     // ---------------- Add Tag ----------------
     public async Task AddTagToTaskAsync(int taskId, string tagName, string userId)
     {
+        logger.LogInformation("Adding tag '{TagName}' to task {TaskId} for user {UserId}", tagName, taskId, userId);
+
         var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
@@ -27,6 +32,7 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
 
         if (task == null)
         {
+            this.logger.LogWarning("Task {TaskId} not found or access denied for user {UserId}", taskId, userId);
             throw new KeyNotFoundException($"Task {taskId} not found or access denied.");
         }
 
@@ -36,6 +42,7 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
 
         if (tag == null)
         {
+            logger.LogInformation("Creating new tag '{TagName}'", tagName);
             tag = new TodoTagEntity { Name = tagName };
             _ = await this.context.TodoTags.AddAsync(tag);
             _ = await this.context.SaveChangesAsync();
@@ -43,18 +50,26 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
 
         if (!task.TaskTags.Any(tt => tt.TagId == tag.Id))
         {
+            logger.LogInformation("Associating tag '{TagName}' (ID: {TagId}) with task {TaskId}", tagName, tag.Id, taskId);
             task.TaskTags.Add(new TodoTaskTagEntity
             {
                 TodoTaskId = taskId,
                 TagId = tag.Id,
             });
             _ = await this.context.SaveChangesAsync();
+            logger.LogInformation("Successfully added tag '{TagName}' to task {TaskId}", tagName, taskId);
+        }
+        else
+        {
+            logger.LogInformation("Tag '{TagName}' already exists on task {TaskId}", tagName, taskId);
         }
     }
 
     // ---------------- Remove Tag ----------------
     public async Task RemoveTagFromTaskAsync(int taskId, string tagName, string userId)
     {
+        logger.LogInformation("Removing tag '{TagName}' from task {TaskId} for user {UserId}", tagName, taskId, userId);
+
         var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
@@ -63,11 +78,13 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
 
         if (task == null)
         {
+            logger.LogWarning("Task {TaskId} not found", taskId);
             throw new KeyNotFoundException($"Task {taskId} not found.");
         }
 
         if (task.TodoList.OwnerId != userId && task.AssignedUserId != userId)
         {
+            logger.LogWarning("User {UserId} not authorized to remove tags from task {TaskId}", userId, taskId);
             throw new UnauthorizedAccessException("You cannot remove tags from this task.");
         }
 
@@ -76,12 +93,19 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
         {
             _ = task.TaskTags.Remove(taskTag);
             _ = await this.context.SaveChangesAsync();
+            logger.LogInformation("Successfully removed tag '{TagName}' from task {TaskId}", tagName, taskId);
+        }
+        else
+        {
+            logger.LogInformation("Tag '{TagName}' not found on task {TaskId}", tagName, taskId);
         }
     }
 
     // ---------------- Get Task With Tags ----------------
     public async Task<TaskWithTagsViewModel> GetTaskWithTagsAsync(int taskId, string userId)
     {
+        logger.LogInformation("Getting task {TaskId} with tags for user {UserId}", taskId, userId);
+
         var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
@@ -91,9 +115,11 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
 
         if (task == null)
         {
+            logger.LogWarning("Task {TaskId} not found or access denied for user {UserId}", taskId, userId);
             throw new KeyNotFoundException($"Task {taskId} not found or access denied.");
         }
 
+        logger.LogInformation("Retrieved task {TaskId} with {TagCount} tags", taskId, task.TaskTags.Count);
         return new TaskWithTagsViewModel
         {
             Id = task.Id,
@@ -110,6 +136,8 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
     // ---------------- Get All Tags ----------------
     public async Task<List<string>> GetAllTagsAsync(string userId)
     {
+        logger.LogInformation("Getting all tags for user {UserId}", userId);
+
         var tags = await this.context.TodoTaskTags
             .Include(tt => tt.TodoTask)
             .ThenInclude(t => t.TodoList)
@@ -118,12 +146,15 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
             .Distinct()
             .ToListAsync();
 
+        logger.LogInformation("Retrieved {TagCount} distinct tags for user {UserId}", tags.Count, userId);
         return tags;
     }
 
     // ---------------- Get Tasks By Tag ----------------
     public async Task<IEnumerable<TodoTask>> GetTasksByTagAsync(string userId, string tagName)
     {
+        logger.LogInformation("Getting tasks with tag '{TagName}' for user {UserId}", tagName, userId);
+
         var tasks = await this.context.TodoTaskTags
             .Include(tt => tt.TodoTask)
             .ThenInclude(t => t.TodoList)
@@ -132,6 +163,7 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
             .Select(tt => tt.TodoTask)
             .ToListAsync();
 
+        logger.LogInformation("Retrieved {TaskCount} tasks with tag '{TagName}' for user {UserId}", tasks.Count, tagName, userId);
         return tasks.Select(t => new TodoTask
         {
             Id = t.Id,
@@ -146,6 +178,8 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
 
     public async Task<List<string>> GetTagsForTaskAsync(int taskId, string userId)
     {
+        logger.LogInformation("Getting tags for task {TaskId} for user {UserId}", taskId, userId);
+
         var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
@@ -154,9 +188,12 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
 
         if (task == null)
         {
+            logger.LogWarning("Task {TaskId} not found or access denied for user {UserId}", taskId, userId);
             throw new KeyNotFoundException($"Task {taskId} not found or access denied.");
         }
 
-        return task.TaskTags.Select(tt => tt.Tag.Name).ToList();
+        var tags = task.TaskTags.Select(tt => tt.Tag.Name).ToList();
+        logger.LogInformation("Retrieved {TagCount} tags for task {TaskId}", tags.Count, taskId);
+        return tags;
     }
 }
