@@ -35,23 +35,23 @@ namespace TodoListApp.WebApp.Helpers
                     await context.Response.WriteAsync("Unauthorized. Please log in.");
                 }
             }
-            catch (HttpRequestException ex)
-            {
-                // HTTP errors from services
-                Console.WriteLine($"[GlobalExceptionHandler] HttpRequestException: {ex.Message}");
+//            catch (HttpRequestException ex)
+//            {
+//                // HTTP errors from services
+//                Console.WriteLine($"[GlobalExceptionHandler] HttpRequestException: {ex.Message}");
 
-                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                await context.Response.WriteAsync("An error occurred while communicating with the API.");
-            }
-#pragma warning disable CA1031 // Do not catch general exception types
-            catch (System.Exception ex)
-            {
-                // Catch all other unhandled exceptions
-                Console.WriteLine($"[GlobalExceptionHandler] Exception: {ex.Message}");
+//                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+//                await context.Response.WriteAsync("An error occurred while communicating with the API.");
+//            }
+//#pragma warning disable CA1031 // Do not catch general exception types
+//            catch (System.Exception ex)
+//            {
+//                // Catch all other unhandled exceptions
+//                Console.WriteLine($"[GlobalExceptionHandler] Exception: {ex.Message}");
 
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                await context.Response.WriteAsync("An unexpected error occurred. Please try again later.");
-            }
+//                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+//                await context.Response.WriteAsync("An unexpected error occurred. Please try again later.");
+//            }
 #pragma warning restore CA1031
         }
     }

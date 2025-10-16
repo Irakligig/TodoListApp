@@ -8,15 +8,22 @@ namespace TodoListApp.WebApp.Controllers;
 public class TagController : Controller
 {
     private readonly ITodoTaskTagWebApiService tagService;
+    private readonly IUsersAuthWebApiService authService;
 
-    public TagController(ITodoTaskTagWebApiService tagService)
+    public TagController(ITodoTaskTagWebApiService tagService, IUsersAuthWebApiService authService)
     {
-        tagService = tagService;
+        this.tagService = tagService;
+        this.authService = authService;
     }
 
     // List all tags
     public async Task<IActionResult> Index()
     {
+        if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
         var tags = await tagService.GetAllTagsAsync();
         return this.View(tags);
     }
@@ -26,8 +33,11 @@ public class TagController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddTag(int taskId, int listId, string newTag)
     {
-        var httpUserId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
-        Console.WriteLine($"[DEBUG] AddTag called. taskId={taskId}, newTag={newTag}, httpUserId={httpUserId}");
+
+        if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+        {
+            return RedirectToAction("Login", "Auth");
+        }
 
         if (!string.IsNullOrWhiteSpace(newTag))
         {
@@ -42,6 +52,11 @@ public class TagController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveTag(int taskId, int listId, string tagName)
     {
+        if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
         await tagService.RemoveTagFromTaskAsync(taskId, tagName);
         return this.RedirectToAction("Details", "TodoTask", new { listId = listId, id = taskId });
     }
@@ -49,6 +64,11 @@ public class TagController : Controller
     // List tasks by tag
     public async Task<IActionResult> TasksByTag(string tagName)
     {
+        if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
         var tasks = await tagService.GetTasksByTagAsync(tagName);
         this.ViewBag.TagName = tagName;
         return this.View(tasks);
@@ -56,6 +76,11 @@ public class TagController : Controller
 
     public async Task<IActionResult> AllTags()
     {
+        if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
         var tags = await tagService.GetAllTagsAsync();
         return this.View(tags);
     }

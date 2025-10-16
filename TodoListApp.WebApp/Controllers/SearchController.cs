@@ -20,9 +20,9 @@ public class SearchController : Controller
     // GET: /Search
     public IActionResult Index()
     {
-        if (string.IsNullOrEmpty(authService.JwtToken))
+        if (!authService.IsJwtPresent() || !authService.IsJwtValid())
         {
-            return this.RedirectToAction("Login", "Auth");
+            return RedirectToAction("Login", "Auth");
         }
 
         return this.View(new SearchViewModel());
@@ -32,6 +32,12 @@ public class SearchController : Controller
     [HttpPost]
     public async Task<IActionResult> Results(SearchViewModel model)
     {
+
+        if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
         if (!this.ModelState.IsValid)
         {
             return this.View("Index", model);

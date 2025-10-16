@@ -11,21 +11,29 @@ namespace TodoListApp.WebApp.Controllers
         private readonly ITodoTaskWebApiService taskService;
         private readonly ITodoCommentWebApiService commentService;
         private readonly ITodoTaskTagWebApiService tagService;
+        private readonly IUsersAuthWebApiService authService;
 
         public TodoTaskController(
             ITodoTaskWebApiService taskService,
             ITodoCommentWebApiService commentService,
-            ITodoTaskTagWebApiService tagService)
+            ITodoTaskTagWebApiService tagService,
+            IUsersAuthWebApiService authService)
         {
             this.taskService = taskService;
             this.commentService = commentService;
             this.tagService = tagService;
+            this.authService = authService;
         }
 
         public async Task<IActionResult> Index(int listId)
         {
             try
             {
+                if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+                {
+                    return RedirectToAction("Login", "Auth");
+                }
+
                 var tasks = await taskService.GetTasksAsync(listId).ConfigureAwait(false);
                 this.ViewBag.ListId = listId;
                 return this.View(tasks);
@@ -50,6 +58,11 @@ namespace TodoListApp.WebApp.Controllers
 
         public IActionResult Create(int listId)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             this.ViewBag.ListId = listId;
             var model = new TodoTaskModel { TodoListId = listId };
             return this.View(model);
@@ -59,6 +72,11 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(TodoTaskModel task)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             if (!this.ModelState.IsValid)
             {
                 this.ViewBag.ListId = task.TodoListId;
@@ -72,6 +90,11 @@ namespace TodoListApp.WebApp.Controllers
         // GET: /TodoTask/Edit/1034?listId=123
         public async Task<IActionResult> Edit(int listId, int id)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             var task = await taskService.GetByIdAsync(listId, id);
             if (task == null)
             {
@@ -107,6 +130,10 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(TaskWithTagsViewModel model)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
 
             if (!ModelState.IsValid)
             {
@@ -149,6 +176,11 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddComment(int listId, int taskId, string text)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             if (string.IsNullOrWhiteSpace(text))
             {
                 TempData["Error"] = "Comment cannot be empty.";
@@ -163,6 +195,11 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditComment(int listId, int taskId, int commentId, string text)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             if (string.IsNullOrWhiteSpace(text))
             {
                 TempData["Error"] = "Comment cannot be empty.";
@@ -177,6 +214,11 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteComment(int listId, int taskId, int commentId)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             await commentService.DeleteCommentAsync(taskId, commentId).ConfigureAwait(false);
             return RedirectToAction("Edit", new { listId, id = taskId });
         }
@@ -186,6 +228,11 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateStatus(int taskId, string status)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             bool isCompleted = status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
             await taskService.UpdateStatusAsync(taskId, isCompleted);
             return RedirectToAction("Index");
@@ -195,6 +242,11 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReassignTask(int taskId, string newUserId)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             if (!string.IsNullOrWhiteSpace(newUserId))
             {
                 await taskService.ReassignTaskAsync(taskId, newUserId);
@@ -206,6 +258,11 @@ namespace TodoListApp.WebApp.Controllers
         // GET: /TodoTask/Details/1046?listId=37
         public async Task<IActionResult> Details(int listId, int id)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             var task = await taskService.GetByIdAsync(listId, id);
             if (task == null)
             {
@@ -236,6 +293,11 @@ namespace TodoListApp.WebApp.Controllers
         // GET: /TodoTask/Delete/1046?listId=37
         public async Task<IActionResult> Delete(int listId, int id)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             var task = await taskService.GetByIdAsync(listId, id);
             if (task == null)
             {
@@ -250,6 +312,11 @@ namespace TodoListApp.WebApp.Controllers
         {
             try
             {
+                if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+                {
+                    return RedirectToAction("Login", "Auth");
+                }
+
                 var tasks = await taskService.GetAssignedAsync(status, sortBy);
                 ViewBag.Status = status ?? "";
                 ViewBag.SortBy = sortBy ?? "";

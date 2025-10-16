@@ -4,92 +4,491 @@
     string status = ViewBag.Status as string ?? "";
     string sortBy = ViewBag.SortBy as string ?? "";
     var users = ViewBag.Users as List<TodoListApp.WebApi.Models.TodoUserModel> ?? new List<TodoListApp.WebApi.Models.TodoUserModel>();
+
+    // Helper function for truncating strings
+    string TruncateString(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        return text.Length <= maxLength ? text : text.Substring(0, maxLength) + "...";
+    }
+
+    // Calculate stats
+    var totalTasks = Model.Count();
+    var pendingTasks = Model.Count(t => !t.IsCompleted);
+    var completedTasks = Model.Count(t => t.IsCompleted);
+    var overdueTasks = Model.Count(t => t.DueDate.HasValue && t.DueDate.Value < DateTime.Now && !t.IsCompleted);
+    var dueSoonTasks = Model.Count(t => t.DueDate.HasValue && t.DueDate.Value < DateTime.Now.AddDays(3) && !t.IsCompleted && t.DueDate.Value >= DateTime.Now);
 }
 
-<h2>Assigned Tasks</h2>
 
-<form method="get">
-    <label>Status:</label>
-    <select name="status">
-        <option value="">All</option>
-        <option value="Pending">Pending</option>
-        <option value="Completed">Completed</option>
-    </select>
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header Section -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h2 text-primary mb-1">Assigned Tasks</h1>
+                    <p class="text-muted">Manage and track your assigned tasks efficiently</p>
+                </div>
+                <div class="badge bg-primary fs-6 p-3">
+                    <i class="fas fa-tasks me-2"></i>
+                    @totalTasks Tasks
+                </div>
+            </div>
 
-    <label>Sort by:</label>
-    <select name="sortBy">
-        <option value="">None</option>
-        <option value="Title">Title</option>
-        <option value="Status">Status</option>
-    </select>
+            <!-- Stats Cards - Improved Design -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card stats-card border-start-4 border-start-primary hover-lift">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <h6 class="text-muted mb-1">Total Tasks</h6>
+                                    <h3 class="mb-0">@totalTasks</h3>
+                                </div>
+                                <div class="stats-icon bg-primary">
+                                    <i class="fas fa-tasks text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-primary">All Assignments</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card stats-card border-start-4 border-start-warning hover-lift">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <h6 class="text-muted mb-1">Pending</h6>
+                                    <h3 class="mb-0">@pendingTasks</h3>
+                                </div>
+                                <div class="stats-icon bg-warning">
+                                    <i class="fas fa-clock text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-warning text-dark">@(totalTasks > 0 ? $"{((double)pendingTasks / totalTasks):P0}" : "0%") of total</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card stats-card border-start-4 border-start-danger hover-lift">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <h6 class="text-muted mb-1">Overdue</h6>
+                                    <h3 class="mb-0">@overdueTasks</h3>
+                                </div>
+                                <div class="stats-icon bg-danger">
+                                    <i class="fas fa-exclamation-triangle text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-danger">Needs Attention</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card stats-card border-start-4 border-start-success hover-lift">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <h6 class="text-muted mb-1">Completed</h6>
+                                    <h3 class="mb-0">@completedTasks</h3>
+                                </div>
+                                <div class="stats-icon bg-success">
+                                    <i class="fas fa-check-circle text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-success">@(totalTasks > 0 ? $"{((double)completedTasks / totalTasks):P0}" : "0%") completed</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    <button type="submit" class="btn btn-primary">Filter/Sort</button>
-</form>
-
-<table class="table mt-3">
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Due Date</th>
-            <th>Actions</th>
-            <th>Reassign</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var task in Model)
-        {
-            var overdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
-            <tr class="@(overdue ? "table-danger" : "")">
-                <td>
-                    <a asp-controller="TodoTask"
-                       asp-action="Details"
-                       asp-route-listId="@task.TodoListId"
-                       asp-route-id="@task.Id">
-                        @task.Name
-                    </a>
-                </td>
-
-                <td>@(task.IsCompleted ? "Completed" : "Pending")</td>
-                <td>@task.DueDate?.ToString("yyyy-MM-dd")</td>
-                <td>
-                    @if (!task.IsCompleted)
-                    {
-                        <form asp-action="UpdateStatus" method="post" style="display:inline">
-                            <input type="hidden" name="taskId" value="@task.Id" />
-                            <input type="hidden" name="status" value="Completed" />
-                            <button type="submit" class="btn btn-sm btn-success">Mark Completed</button>
-                        </form>
-                    }
-                    else
-                    {
-                        <form asp-action="UpdateStatus" method="post" style="display:inline">
-                            <input type="hidden" name="taskId" value="@task.Id" />
-                            <input type="hidden" name="status" value="Pending" />
-                            <button type="submit" class="btn btn-sm btn-warning">Mark Pending</button>
-                        </form>
-                    }
-                </td>
-                <td>
-                    <form asp-action="ReassignTask" method="post">
-                        <input type="hidden" name="taskId" value="@task.Id" />
-                        <select name="newUserId" class="form-select form-select-sm">
-                            @foreach (var user in users)
-                            {
-                                if (user.Id == task.AssignedUserId)
-                                {
-                                    <option value="@user.Id" selected="selected">@user.FullName</option>
-                                }
-                                else
-                                {
-                                    <option value="@user.Id">@user.FullName</option>
-                                }
-                            }
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-info mt-1">Reassign</button>
+            <!-- Filter Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-filter me-2 text-primary"></i>Filter & Sort Tasks
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">All Tasks</option>
+                                <option value="Pending" selected="@(status == "Pending")">Pending</option>
+                                <option value="Completed" selected="@(status == "Completed")">Completed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Sort By</label>
+                            <select name="sortBy" class="form-select">
+                                <option value="">Default</option>
+                                <option value="Title" selected="@(sortBy == "Title")">Title</option>
+                                <option value="Status" selected="@(sortBy == "Status")">Status</option>
+                                <option value="DueDate" selected="@(sortBy == "DueDate")">Due Date</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-2"></i>Apply Filters
+                                </button>
+                                <a href="@Url.Action("AssignedTasks")" class="btn btn-outline-secondary">
+                                    <i class="fas fa-refresh me-2"></i>Reset
+                                </a>
+                            </div>
+                        </div>
                     </form>
-                </td>
-            </tr>
+                </div>
+            </div>
+
+            <!-- Tasks Table Card -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title mb-0 text-dark">
+                        <i class="fas fa-list-check me-2 text-primary"></i>Task List
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Task</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                    <th>Assigned To</th>
+                                    <th>Actions</th>
+                                    <th class="pe-4">Reassign</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var task in Model)
+                                {
+                                    var overdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
+                                    var dueSoon = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now.AddDays(3) && !task.IsCompleted && !overdue;
+
+                                    <tr class="@(overdue ? "table-warning" : dueSoon ? "table-info" : "")">
+                                        <!-- Task Column -->
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    @if (task.IsCompleted)
+                                                    {
+                                                        <i class="fas fa-check-circle text-success fs-5"></i>
+                                                    }
+                                                    else if (overdue)
+                                                    {
+                                                        <i class="fas fa-exclamation-circle text-warning fs-5"></i>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="fas fa-clock text-secondary fs-5"></i>
+                                                    }
+                                                </div>
+                                                <div>
+                                                    <!-- Removed clickable link from task name -->
+                                                    <span class="fw-semibold text-dark">@task.Name</span>
+                                                    @if (!string.IsNullOrEmpty(task.Description))
+                                                    {
+                                                        <p class="text-muted small mb-0 mt-1">@TruncateString(task.Description, 60)</p>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <!-- Status Column -->
+                                        <td>
+                                            <span class="badge @(task.IsCompleted ? "bg-success" : "bg-warning") fs-7">
+                                                @if (task.IsCompleted)
+                                                {
+                                                    <i class="fas fa-check me-1"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-clock me-1"></i>
+                                                }
+                                                @(task.IsCompleted ? "Completed" : "Pending")
+                                            </span>
+                                            @if (overdue)
+                                            {
+                                                <span class="badge bg-danger fs-7 mt-1">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>Overdue
+                                                </span>
+                                            }
+                                            else if (dueSoon)
+                                            {
+                                                <span class="badge bg-info fs-7 mt-1">
+                                                    <i class="fas fa-hourglass-half me-1"></i>Due Soon
+                                                </span>
+                                            }
+                                        </td>
+
+                                        <!-- Due Date Column -->
+                                        <td>
+                                            @if (task.DueDate.HasValue)
+                                            {
+                                                <div class="d-flex flex-column">
+                                                    <span class="fw-semibold @(overdue ? "text-danger" : dueSoon ? "text-info" : "text-dark")">
+                                                        @task.DueDate.Value.ToString("MMM dd, yyyy")
+                                                    </span>
+                                                    <small class="text-muted">
+                                                        @task.DueDate.Value.ToString("hh:mm tt")
+                                                    </small>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">No due date</span>
+                                            }
+                                        </td>
+
+                                        <!-- Assigned To Column -->
+                                        <td>
+                                            @{
+                                                var currentUser = users.FirstOrDefault(u => u.Id == task.AssignedUserId);
+                                            }
+                                            @if (currentUser != null)
+                                            {
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-sm me-2">
+                                                        <div class="avatar-title bg-primary rounded-circle text-white fw-bold">
+                                                            @currentUser.FullName?.Substring(0, 1).ToUpper()
+                                                        </div>
+                                                    </div>
+                                                    <span class="fw-semibold">@currentUser.FullName</span>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Unassigned</span>
+                                            }
+                                        </td>
+
+                                        <!-- Actions Column -->
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                @if (!task.IsCompleted)
+                                                {
+                                                    <form asp-action="UpdateStatus" method="post" class="d-inline">
+                                                        <input type="hidden" name="taskId" value="@task.Id" />
+                                                        <input type="hidden" name="status" value="Completed" />
+                                                        <button type="submit" class="btn btn-success btn-sm">
+                                                            <i class="fas fa-check me-1"></i>Complete
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <form asp-action="UpdateStatus" method="post" class="d-inline">
+                                                        <input type="hidden" name="taskId" value="@task.Id" />
+                                                        <input type="hidden" name="status" value="Pending" />
+                                                        <button type="submit" class="btn btn-warning btn-sm">
+                                                            <i class="fas fa-undo me-1"></i>Reopen
+                                                        </button>
+                                                    </form>
+                                                }
+
+                                                <!-- View Details Button - Now the only way to see details -->
+                                                <a asp-controller="TodoTask"
+                                                   asp-action="Details"
+                                                   asp-route-listId="@task.TodoListId"
+                                                   asp-route-id="@task.Id"
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye me-1"></i>View
+                                                </a>
+                                            </div>
+                                        </td>
+
+                                        <!-- Reassign Column - Fixed to show properly -->
+                                        <td class="pe-4">
+                                            @if (users.Any())
+                                            {
+                                                <form asp-action="ReassignTask" method="post" class="reassign-form">
+                                                    <input type="hidden" name="taskId" value="@task.Id" />
+                                                    <div class="input-group input-group-sm">
+                                                        <select name="newUserId" class="form-select form-select-sm reassign-select">
+                                                            <option value="">Select User</option>
+                                                            @foreach (var user in users)
+                                                            {
+                                                                <option value="@user.Id" selected="@(user.Id == task.AssignedUserId)">@user.FullName</option>
+                                                            }
+                                                        </select>
+                                                        <button type="submit" class="btn btn-info btn-sm" title="Reassign Task" @(task.AssignedUserId == null ? "disabled" : "")>
+                                                            <i class="fas fa-user-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">No users available</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+
+                                @if (!Model.Any())
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5">
+                                            <div class="text-muted">
+                                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                                <h5>No tasks found</h5>
+                                                <p>There are no tasks matching your current filters.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+    }
+
+    .avatar-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        font-size: 14px;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+
+    .reassign-select {
+        min-width: 120px;
+    }
+
+    .card {
+        border: none;
+        border-radius: 12px;
+    }
+
+    .badge.fs-7 {
+        font-size: 0.75rem;
+    }
+
+    .task-description {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Stats Card Styles */
+    .stats-card {
+        transition: all 0.3s ease;
+        border-left-width: 4px !important;
+    }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
-    </tbody>
-</table>
+
+    .stats-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .border-start-4 {
+        border-left-width: 4px !important;
+    }
+
+    .border-start-primary {
+        border-left-color: #007bff !important;
+    }
+
+    .border-start-warning {
+        border-left-color: #ffc107 !important;
+    }
+
+    .border-start-danger {
+        border-left-color: #dc3545 !important;
+    }
+
+    .border-start-success {
+        border-left-color: #28a745 !important;
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        transition: all 0.3s ease;
+    }
+</style>
+
+<script>
+    // Add smooth animations and confirmations
+    document.addEventListener('DOMContentLoaded', function () {
+        // Add confirmation for reassignment
+        const reassignForms = document.querySelectorAll('.reassign-form');
+        reassignForms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const select = this.querySelector('.reassign-select');
+                const selectedUserId = select.value;
+                const selectedUser = select.options[select.selectedIndex].text;
+
+                if (!selectedUserId) {
+                    alert('Please select a user to reassign the task to.');
+                    e.preventDefault();
+                    return;
+                }
+
+                if (!confirm(`Are you sure you want to reassign this task to ${selectedUser}?`)) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // Add status update confirmation
+        const statusForms = document.querySelectorAll('form[action*="UpdateStatus"]');
+        statusForms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const status = this.querySelector('input[name="status"]').value;
+                const action = status === 'Completed' ? 'complete' : 'reopen';
+                if (!confirm(`Are you sure you want to ${action} this task?`)) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // Add hover effects to stats cards
+        const statsCards = document.querySelectorAll('.stats-card');
+        statsCards.forEach(card => {
+            card.addEventListener('mouseenter', function () {
+                this.style.transform = 'translateY(-5px)';
+            });
+            card.addEventListener('mouseleave', function () {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    });
+</script>

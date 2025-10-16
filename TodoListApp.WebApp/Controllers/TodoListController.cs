@@ -24,8 +24,7 @@ namespace TodoListApp.WebApp.Controllers
         public async Task<IActionResult> Index()
         {
 
-            // Check if JWT exists
-            if (string.IsNullOrEmpty(authService.JwtToken))
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
             {
                 return RedirectToAction("Login", "Auth");
             }
@@ -39,12 +38,22 @@ namespace TodoListApp.WebApp.Controllers
         [HttpGet]
         public IActionResult Create()
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             return this.View();
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(TodoListModel list)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             _ = ModelState.Remove(nameof(TodoListModel.OwnerId));
 
             if (!ModelState.IsValid)
@@ -69,6 +78,11 @@ namespace TodoListApp.WebApp.Controllers
         // ======================
         public async Task<IActionResult> Delete(int id)
         {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             await todoListService.DeleteTodoListAsync(id);
             return RedirectToAction(nameof(Index));
         }
@@ -79,6 +93,12 @@ namespace TodoListApp.WebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
+
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             var lists = await todoListService.GetTodoListsAsync();
             var list = lists.FirstOrDefault(x => x.Id == id);
             return list == null ? NotFound() : View(list);
@@ -87,6 +107,12 @@ namespace TodoListApp.WebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(TodoListModel list)
         {
+
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             _ = ModelState.Remove(nameof(TodoListModel.OwnerId));
 
             if (!ModelState.IsValid)

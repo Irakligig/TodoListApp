@@ -1,6 +1,6 @@
-using System.Net.Http.Json;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 
 namespace TodoListApp.WebApp.Services
 {
@@ -23,7 +23,19 @@ namespace TodoListApp.WebApp.Services
             }
         }
 
+        public bool IsJwtPresent()
+        {
+            if (string.IsNullOrEmpty(this.JwtToken))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         public string? CurrentUserId => GetUserIdFromJwt(JwtToken);
+
+        public string? CurrentUserName => GetUserNameFromJwt(JwtToken);
 
         public async Task<bool> RegisterAsync(string username, string email, string password, string fullName)
         {
@@ -58,6 +70,11 @@ namespace TodoListApp.WebApp.Services
                 return false;
             }
 
+            // Read the actual JWT token to get its exact expiration
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(result.Token);
+            var tokenExpiration = jwtToken.ValidTo;
+
             // Local HTTPS check: only set Secure if HTTPS
             var isHttps = _httpContextAccessor.HttpContext?.Request.IsHttps ?? false;
             Console.WriteLine("Request IsHttps: " + isHttps);
@@ -70,7 +87,7 @@ namespace TodoListApp.WebApp.Services
                     HttpOnly = true,
                     Secure = isHttps,
                     SameSite = SameSiteMode.Strict,
-                    Expires = DateTimeOffset.UtcNow.AddHours(2)
+                    Expires = tokenExpiration,
                 });
 
             Console.WriteLine("JWT cookie set: " + result.Token);
@@ -96,9 +113,55 @@ namespace TodoListApp.WebApp.Services
             return jwt.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         }
 
+        private string? GetUserNameFromJwt(string? token)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return null;
+            }
+
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(token);
+
+            // Your backend uses ClaimTypes.Name for the username
+            var userName = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+
+            Console.WriteLine($"JWT Username extraction: Found '{userName}'");
+            return userName;
+
+        }
+
+        public bool IsJwtValid()
+        {
+            if (string.IsNullOrEmpty(JwtToken))
+            {
+                Console.WriteLine("JWT token is null or empty");
+                return false;
+            }
+
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var jwt = handler.ReadJwtToken(JwtToken);
+                var isValid = jwt.ValidTo > DateTime.UtcNow;
+
+                Console.WriteLine($"Token validation: IsValid={isValid}, Expires={jwt.ValidTo}, CurrentTime={DateTime.UtcNow}");
+
+                return isValid;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error validating JWT: {ex.Message}");
+                throw;
+            }
+        }
+
         private class LoginResponse
         {
             public string Token { get; set; } = default!;
         }
+
+
     }
 }
