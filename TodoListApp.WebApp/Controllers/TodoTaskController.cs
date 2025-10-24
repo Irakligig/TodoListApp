@@ -153,6 +153,11 @@ namespace TodoListApp.WebApp.Controllers
                 return View(model);
             }
 
+            var addedtag = model.NewTag;
+            if (!string.IsNullOrWhiteSpace(addedtag))
+            {
+                await tagService.AddTagToTaskAsync(model.Id, addedtag);
+            }
             // Map ViewModel -> API Model
             var apiModel = new TodoTaskModel
             {
@@ -184,11 +189,11 @@ namespace TodoListApp.WebApp.Controllers
             if (string.IsNullOrWhiteSpace(text))
             {
                 TempData["Error"] = "Comment cannot be empty.";
-                return RedirectToAction("Edit", new { listId, id = taskId });
+                return RedirectToAction("Details", new { listId, id = taskId });
             }
 
             await commentService.AddCommentAsync(taskId, text).ConfigureAwait(false);
-            return RedirectToAction("Edit", new { listId, id = taskId });
+            return RedirectToAction("Details", new { listId, id = taskId });
         }
 
         [HttpPost]
@@ -203,11 +208,11 @@ namespace TodoListApp.WebApp.Controllers
             if (string.IsNullOrWhiteSpace(text))
             {
                 TempData["Error"] = "Comment cannot be empty.";
-                return RedirectToAction("Edit", new { listId, id = taskId });
+                return RedirectToAction("Details", new { listId, id = taskId });
             }
 
             await commentService.EditCommentAsync(taskId, commentId, text).ConfigureAwait(false);
-            return RedirectToAction("Edit", new { listId, id = taskId });
+            return RedirectToAction("Details", new { listId, id = taskId });
         }
 
         [HttpPost]
@@ -220,7 +225,7 @@ namespace TodoListApp.WebApp.Controllers
             }
 
             await commentService.DeleteCommentAsync(taskId, commentId).ConfigureAwait(false);
-            return RedirectToAction("Edit", new { listId, id = taskId });
+            return RedirectToAction("Details", new { listId, id = taskId });
         }
 
 
@@ -271,6 +276,7 @@ namespace TodoListApp.WebApp.Controllers
 
             var tags = await tagService.GetTagsForTaskAsync(id);
             var comments = await commentService.GetCommentsAsync(id);
+            var users = await taskService.GetAllUsersAsync();
 
             var model = new TaskWithTagsViewModel
             {
@@ -283,10 +289,14 @@ namespace TodoListApp.WebApp.Controllers
                 AssignedUserId = task.AssignedUserId,
                 Tags = tags,
                 Comments = comments.ToList(),
-                NewTag = string.Empty
+                NewTag = string.Empty,
+                OwnerId = task.OwnerId,
             };
 
             ViewBag.ListId = listId;
+            ViewBag.Users = users;
+            ViewBag.TaskOwnerId = task.OwnerId;
+            ViewBag.CurrentUserId = await GetCurrentApiUserIdAsync();
             return View(model);
         }
 
@@ -328,6 +338,33 @@ namespace TodoListApp.WebApp.Controllers
                 TempData["Error"] = $"API error: {ex.Message}";
                 return RedirectToAction("Index", "TodoList");
             }
+        }
+
+        private async Task<string> GetCurrentApiUserIdAsync()
+        {
+            var currentUsername = User.Identity?.Name; // "1R3X5" from WebApp Identity
+
+            if (string.IsNullOrEmpty(currentUsername))
+            {
+                return "unknown-user";
+            }
+
+
+            var apiUsers = await taskService.GetAllUsersAsync();
+            var apiUser = apiUsers.FirstOrDefault(u =>
+                u.UserName == currentUsername ||
+                u.FullName == currentUsername);
+
+            if (apiUser != null)
+            {
+                return apiUser.Id; // Returns the API GUID
+            }
+
+            // If not found, log warning
+            Console.WriteLine($"Warning: No API user found for WebApp user '{currentUsername}'");
+            return currentUsername;
+
+
         }
     }
 }

@@ -1,69 +1,229 @@
 @model TodoListApp.WebApi.Models.TaskWithTagsViewModel
-
 @{
     ViewData["Title"] = "Task Details";
+
+    // Get current user ID from ViewBag (set in controller)
+    var currentUserId = ViewBag.CurrentUserId;
+
+    // Check if current user is the task owner
+    bool IsTaskOwner = !string.IsNullOrEmpty(currentUserId) && currentUserId == Model.OwnerId;
 }
 
-<h2>Task Details</h2>
 
-<div>
-    <dl class="row">
-        <dt class="col-sm-2">Title</dt>
-        <dd class="col-sm-10">@Model.Name</dd>
+<div class="container mt-4">
+    <div class="row">
+        <!-- Task Details Column -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Task Details</h4>
+                    <a asp-action="Edit" asp-route-listId="@Model.TodoListId" asp-route-id="@Model.Id"
+                       class="btn btn-light btn-sm">
+                        <i class="fas fa-edit me-1"></i>Edit Task
+                    </a>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Title</dt>
+                        <dd class="col-sm-8">@Model.Name</dd>
 
-        <dt class="col-sm-2">Description</dt>
-        <dd class="col-sm-10">@Model.Description</dd>
+                        <dt class="col-sm-4">Description</dt>
+                        <dd class="col-sm-8">@(string.IsNullOrEmpty(Model.Description) ? "No description" : Model.Description)</dd>
 
-        <dt class="col-sm-2">Due Date</dt>
-        <dd class="col-sm-10">@Model.DueDate?.ToString("yyyy-MM-dd")</dd>
+                        <dt class="col-sm-4">Due Date</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.DueDate.HasValue)
+                            {
+                                <span class="@(Model.DueDate < DateTime.Now && !Model.IsCompleted ? "text-danger fw-bold" : "")">
+                                    @Model.DueDate.Value.ToString("yyyy-MM-dd")
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No due date</span>
+                            }
+                        </dd>
 
-        <dt class="col-sm-2">Status</dt>
-        <dd class="col-sm-10">@(Model.IsCompleted ? "Completed" : "Pending")</dd>
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.IsCompleted)
+                            {
+                                <span class="badge bg-success">Completed</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            }
+                        </dd>
 
-        <dt class="col-sm-2">Tags</dt>
-        <dd class="col-sm-10">
-            <ul class="list-inline">
-                @foreach (var tag in Model.Tags)
-                {
-                    <li class="list-inline-item">
-                        <a asp-controller="Tag" asp-action="TasksByTag" asp-route-tagName="@tag"
-                           class="badge bg-info text-dark text-decoration-none">
-                            @tag
-                        </a>
+                        <dt class="col-sm-4">Assigned To</dt>
+                        <dd class="col-sm-8">
+                            @if (!string.IsNullOrEmpty(Model.AssignedUserId))
+                            {
+                                <span class="badge bg-info text-dark">@Model.AssignedUserId</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Unassigned</span>
+                            }
+                        </dd>
 
-                        <form asp-controller="Tag" asp-action="RemoveTag" method="post" style="display:inline">
-                            <input type="hidden" name="taskId" value="@Model.Id" />
+                        <dt class="col-sm-4">Task Owner</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-primary text-white">@Model.OwnerId</span>
+                        </dd>
+
+                        <dt class="col-sm-4">Tags</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.Tags.Any())
+                            {
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    @foreach (var tag in Model.Tags)
+                                    {
+                                        <span class="badge bg-secondary">
+                                            <a asp-controller="Tag" asp-action="TasksByTag" asp-route-tagName="@tag"
+                                               class="text-white text-decoration-none">
+                                                @tag
+                                            </a>
+                                            <form asp-controller="Tag" asp-action="RemoveTag" method="post" style="display:inline">
+                                                <input type="hidden" name="taskId" value="@Model.Id" />
+                                                <input type="hidden" name="listId" value="@Model.TodoListId" />
+                                                <input type="hidden" name="tagName" value="@tag" />
+                                                <button type="submit" class="btn btn-sm btn-link text-white p-0 ms-1"
+                                                        style="text-decoration: none;">
+                                                    ×
+                                                </button>
+                                            </form>
+                                        </span>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">No tags</span>
+                            }
+
+                            <form asp-controller="Tag" asp-action="AddTag" method="post" class="mt-2 d-flex gap-2">
+                                <input type="hidden" name="taskId" value="@Model.Id" />
+                                <input type="hidden" name="listId" value="@Model.TodoListId" />
+                                <input type="text" name="newTag" placeholder="New tag" value="@Model.NewTag" class="form-control form-control-sm" />
+                                <button type="submit" class="btn btn-primary btn-sm">Add Tag</button>
+                            </form>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comments Column -->
+        <div class="col-lg-6">
+            <!-- Add Comment Card - Only show if user is authenticated -->
+            @if (User.Identity.IsAuthenticated)
+            {
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-comment me-2"></i>Add New Comment</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="AddComment" method="post">
                             <input type="hidden" name="listId" value="@Model.TodoListId" />
-                            <input type="hidden" name="tagName" value="@tag" />
-                            <button type="submit" class="btn btn-sm btn-link text-danger p-0 ms-1">×</button>
+                            <input type="hidden" name="taskId" value="@Model.Id" />
+                            <div class="mb-3">
+                                <textarea name="text" class="form-control" rows="3"
+                                          placeholder="Enter your comment here..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-paper-plane me-1"></i>Post Comment
+                            </button>
                         </form>
-                    </li>
-                }
-            </ul>
+                    </div>
+                </div>
+            }
 
-            <form asp-controller="Tag" asp-action="AddTag" method="post" class="mt-2 d-flex gap-2">
-                <input type="hidden" name="taskId" value="@Model.Id" />
-                <input type="hidden" name="listId" value="@Model.TodoListId" />
-                <input type="text" name="newTag" placeholder="New tag" value="@Model.NewTag" class="form-control form-control-sm" />
-                <button type="submit" class="btn btn-primary btn-sm">Add</button>
-            </form>
-        </dd>
+            <!-- Comments List Card -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comments me-2"></i>Comments
+                        <span class="badge bg-light text-dark ms-2">@Model.Comments.Count</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Comments.Any())
+                    {
+                        <div class="comment-list">
+                            @foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedAt))
+                            {
+                                <div class="comment-item border-bottom pb-3 mb-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <strong class="text-primary">@comment.UserName</strong>
+                                            <small class="text-muted ms-2">
+                                                @comment.CreatedAt.ToString("MMM dd, yyyy 'at' hh:mm tt")
+                                            </small>
+                                        </div>
+                                        <!-- Only show delete options for task owners -->
+                                        @if (IsTaskOwner)
+                                        {
+                                            <div class="border border-success p-1 bg-light">
+                                                <small class="text-success">DEBUG: IsTaskOwner = TRUE</small>
+                                                <form asp-action="DeleteComment" method="post" class="d-inline"
+                                                      onsubmit="return confirm('Delete this comment?');">
+                                                    <input type="hidden" name="listId" value="@Model.TodoListId" />
+                                                    <input type="hidden" name="taskId" value="@Model.Id" />
+                                                    <input type="hidden" name="commentId" value="@comment.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-danger ms-2">
+                                                        <i class="fas fa-trash me-1"></i>DELETE
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        }
+                                    </div>
+                                    <p class="mb-0 comment-text">@comment.Text</p>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-comments fa-2x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">
+                                @if (User.Identity.IsAuthenticated)
+                                {
+                                    @:No comments yet. Be the first to comment!
+                                }
+                                else
+                                {
+                                    @:No comments yet. Sign in to add a comment.
+                                }
+                            </p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 
-    </dl>
+    <!-- Back to List Button -->
+    <div class="mt-4">
+        <a asp-action="Index" asp-route-listId="@Model.TodoListId" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Tasks
+        </a>
+    </div>
 </div>
 
-<div class="mt-4">
-    <h4>Comments</h4>
-    <a asp-action="Edit"
-       asp-route-listId="@Model.TodoListId"
-       asp-route-id="@Model.Id"
-       class="btn btn-outline-primary btn-sm">
-        View Comments
-    </a>
-</div>
-
-
-<div class="mt-3">
-    <a asp-action="Edit" asp-route-listId="@Model.TodoListId" asp-route-id="@Model.Id" class="btn btn-secondary btn-sm">Edit</a>
-    <a asp-action="Index" asp-route-listId="@Model.TodoListId" class="btn btn-link btn-sm">Back to List</a>
-</div>
+@section Scripts {
+    <script>
+        // Auto-focus comment textarea when modal opens
+        document.addEventListener('DOMContentLoaded', function () {
+            var editModals = document.querySelectorAll('[id^="editCommentModal-"]');
+            editModals.forEach(function (modal) {
+                modal.addEventListener('shown.bs.modal', function () {
+                    var textarea = this.querySelector('textarea');
+                    textarea.focus();
+                });
+            });
+        });
+    </script>
+}

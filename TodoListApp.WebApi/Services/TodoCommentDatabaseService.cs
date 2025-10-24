@@ -24,6 +24,7 @@ public class TodoCommentDatabaseService : ITodoCommentDatabaseService
             Id = entity.Id,
             TaskId = entity.TaskId,
             UserId = entity.UserId,
+            UserName = entity.UserName, // Add this line
             Text = entity.Text,
             CreatedAt = entity.CreatedAt
         };
@@ -49,9 +50,9 @@ public class TodoCommentDatabaseService : ITodoCommentDatabaseService
         return comments.Select(MapEntityToModel).ToList();
     }
 
-    public async Task<TodoCommentEntity> AddCommentAsync(int taskId, string userId, string text)
+    public async Task<TodoCommentEntity> AddCommentAsync(int taskId, string userId, string userName, string text)
     {
-        logger.LogInformation("Adding comment to task {TaskId} by user {UserId}", taskId, userId);
+        logger.LogInformation("Adding comment to task {TaskId} by user {UserId} ({UserName})", taskId, userId, userName);
 
         var task = await taskService.GetTaskByIdAsync(taskId, userId);
         if (task == null)
@@ -64,6 +65,7 @@ public class TodoCommentDatabaseService : ITodoCommentDatabaseService
         {
             TaskId = taskId,
             UserId = userId,
+            UserName = userName, // Save the username
             Text = text,
             CreatedAt = DateTime.UtcNow
         };
@@ -71,7 +73,7 @@ public class TodoCommentDatabaseService : ITodoCommentDatabaseService
         context.Comments.Add(entity);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("Successfully added comment {CommentId} to task {TaskId}", entity.Id, taskId);
+        logger.LogInformation("Successfully added comment {CommentId} to task {TaskId} by user {UserName}", entity.Id, taskId, userName);
         return MapEntityToModel(entity);
     }
 
@@ -122,14 +124,15 @@ public class TodoCommentDatabaseService : ITodoCommentDatabaseService
             throw new UnauthorizedAccessException("You do not have access to this task.");
         }
 
-        if (entity.UserId != userId && task.AssignedUserId != userId && task.OwnerId != userId)
+        // ONLY allow task owners to delete comments
+        if (task.OwnerId != userId)
         {
-            logger.LogWarning("User {UserId} is not authorized to delete comment {CommentId}", userId, commentId);
-            throw new UnauthorizedAccessException("You cannot delete this comment.");
+            logger.LogWarning("User {UserId} is not authorized to delete comment {CommentId}. Only task owners can delete comments.", userId, commentId);
+            throw new UnauthorizedAccessException("Only the task owner can delete comments.");
         }
 
         context.Comments.Remove(entity);
         await context.SaveChangesAsync();
-        logger.LogInformation("Successfully deleted comment {CommentId}", commentId);
+        logger.LogInformation("Successfully deleted comment {CommentId} by task owner {UserId}", commentId, userId);
     }
 }

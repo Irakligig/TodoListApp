@@ -48,6 +48,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
                 IsCompleted = t.IsCompleted,
                 TodoListId = t.TodoListId,
                 AssignedUserId = t.AssignedUserId,
+                OwnerId = t.OwnerId,
             })
             .ToListAsync();
 
@@ -83,7 +84,8 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             DueDate = task.DueDate,
             IsCompleted = task.IsCompleted,
             TodoListId = task.TodoListId,
-            AssignedUserId = task.AssignedUserId
+            AssignedUserId = task.AssignedUserId,
+            OwnerId = task.OwnerId,
         };
     }
 
@@ -208,8 +210,21 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             }
         }
 
-        // Optional sorting (not fully implemented)
-        // TODO: implement sortBy if needed
+        if (!string.IsNullOrWhiteSpace(sortby))
+        {
+            query = sortby.ToLower() switch
+            {
+                "title" => query.OrderBy(t => t.Name),
+                "status" => query.OrderBy(t => t.IsCompleted).ThenBy(t => t.DueDate),
+                "duedate" => query.OrderBy(t => t.DueDate),
+                _ => query.OrderBy(t => t.IsCompleted).ThenBy(t => t.DueDate) // Default sorting
+            };
+        }
+        else
+        {
+            // Default sorting if no sort specified
+            query = query.OrderBy(t => t.IsCompleted).ThenBy(t => t.DueDate);
+        }
 
         var tasks = await query.Select(t => new TodoTask
         {
@@ -219,7 +234,8 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             DueDate = t.DueDate,
             IsCompleted = t.IsCompleted,
             TodoListId = t.TodoListId,
-            AssignedUserId = t.AssignedUserId
+            AssignedUserId = t.AssignedUserId,
+            OwnerId = t.OwnerId,
         }).ToListAsync();
 
         logger.LogInformation("Retrieved {TaskCount} assigned tasks for user {UserId}", tasks.Count, userId);
@@ -307,7 +323,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
         }
 
         var tasks = context.TodoTasks.Include(t => t.TodoList)
-            .Where(t => t.TodoList.OwnerId == userId);
+            .Where(t => t.TodoList.OwnerId == userId || t.AssignedUserId == userId);
 
         if (!string.IsNullOrWhiteSpace(query))
         {
@@ -338,7 +354,8 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
                 DueDate = t.DueDate,
                 IsCompleted = t.IsCompleted,
                 TodoListId = t.TodoListId,
-                AssignedUserId = t.AssignedUserId
+                AssignedUserId = t.AssignedUserId,
+                OwnerId = t.OwnerId,
             }).ToListAsync();
 
         logger.LogInformation("Search returned {TaskCount} tasks for user {UserId}", result.Count, userId);

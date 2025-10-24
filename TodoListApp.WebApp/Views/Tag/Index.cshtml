@@ -1,11 +1,48 @@
 @model IEnumerable<string>
 
-<h2>All Tags</h2>
-<ul>
-    @foreach (var tag in Model)
-    {
-        <li>
-            <a asp-action="TasksByTag" asp-route-tagName="@tag">@tag</a>
-        </li>
-    }
-</ul>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-tags me-2 text-primary"></i>
+                        All Tags
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var tag in Model)
+                        {
+                            <a asp-action="TasksByTag" asp-route-tagName="@tag"
+                               class="btn btn-outline-primary position-relative">
+                                <i class="fas fa-tag me-2"></i>
+                                @tag
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary">
+                                    <i class="fas fa-arrow-right"></i>
+                                </span>
+                            </a>
+                        }
+
+                        @if (!Model.Any())
+                        {
+                            <div class="text-center w-100 py-4">
+                                <i class="fas fa-tags fa-2x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">No tags available yet.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+                @if (Model.Any())
+                {
+                    <div class="card-footer bg-light">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Showing @Model.Count() tags
+                        </small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

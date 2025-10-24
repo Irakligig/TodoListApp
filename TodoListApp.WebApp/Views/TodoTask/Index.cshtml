@@ -18,13 +18,17 @@
                         <tr>
                             <th>Title</th>
                             <th>Status</th>
+                            <th>Due Date</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var task in Model)
                         {
-                            <tr>
+                            bool isOverdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
+                            string rowClass = isOverdue ? "table-danger" : "";
+
+                            <tr class="@rowClass">
                                 <td>@task.Name</td>
                                 <td>
                                     @if (task.IsCompleted)
@@ -34,6 +38,18 @@
                                     else
                                     {
                                         <span class="badge bg-warning text-dark">Pending</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (task.DueDate.HasValue)
+                                    {
+                                        <span class="@(isOverdue ? "text-danger fw-bold" : "")">
+                                            @task.DueDate.Value.ToString("MMM dd, yyyy")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No due date</span>
                                     }
                                 </td>
                                 <td>
@@ -50,7 +66,7 @@
                         @if (!Model.Any())
                         {
                             <tr>
-                                <td colspan="3" class="text-muted">No tasks available in this list.</td>
+                                <td colspan="4" class="text-muted">No tasks available in this list.</td>
                             </tr>
                         }
                     </tbody>

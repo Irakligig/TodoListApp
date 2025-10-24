@@ -8,7 +8,7 @@ namespace TodoListApp.WebApi.Services
         Task<List<TodoCommentEntity>> GetByTaskIdAsync(int taskId, string userId);
 
         // Add a new comment to a task
-        Task<TodoCommentEntity> AddCommentAsync(int taskId, string userId, string text);
+        Task<TodoCommentEntity> AddCommentAsync(int taskId, string userId, string userName, string text);
 
         // Edit an existing comment (author or owner only)
         Task EditCommentAsync(int commentId, string userId, string newText);

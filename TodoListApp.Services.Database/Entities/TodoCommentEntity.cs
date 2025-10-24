@@ -18,6 +18,10 @@ public class TodoCommentEntity
     public string UserId { get; set; } = null!; // Author of the comment
 
     [Required]
+    [MaxLength(100)]
+    public string UserName { get; set; } = null!;
+
+    [Required]
     [MaxLength(1000)]
     public string Text { get; set; } = null!;
 

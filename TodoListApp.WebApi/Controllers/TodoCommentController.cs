@@ -36,6 +36,7 @@ namespace TodoListApp.WebApi.Controllers
                 Id = c.Id,
                 TaskId = c.TaskId,
                 UserId = c.UserId,
+                UserName = c.UserName, // Add this line - include username in response
                 Text = c.Text,
                 CreatedAt = c.CreatedAt
             }).ToList();
@@ -48,6 +49,8 @@ namespace TodoListApp.WebApi.Controllers
         public async Task<ActionResult<TodoCommentModel>> AddComment(int taskId, [FromBody] TodoCommentCreateModel model)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userName = User.FindFirstValue(ClaimTypes.Name) ?? "Unknown User"; // Get username from claims
+
             if (userId == null)
             {
                 return Unauthorized();
@@ -58,13 +61,15 @@ namespace TodoListApp.WebApi.Controllers
                 return BadRequest("Comment text is required.");
             }
 
-            var comment = await _commentService.AddCommentAsync(taskId, userId, model.Text);
+            // Pass the username to the service
+            var comment = await _commentService.AddCommentAsync(taskId, userId, userName, model.Text);
 
             var result = new TodoCommentModel
             {
                 Id = comment.Id,
                 TaskId = comment.TaskId,
                 UserId = comment.UserId,
+                UserName = comment.UserName, // Add this line - include username in response
                 Text = comment.Text,
                 CreatedAt = comment.CreatedAt
             };

@@ -4,99 +4,130 @@
     var users = ViewBag.Users as List<TodoListApp.WebApi.Models.TodoUserModel> ?? new();
 }
 
-<h2>Edit Task</h2>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Edit Task
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Main Task Edit Form -->
+                    <form asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
 
-<form asp-action="Edit" method="post">
-    @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="TodoListId" />
+                        <input type="hidden" asp-for="Id" />
 
-    <input type="hidden" asp-for="TodoListId" />
-    <input type="hidden" asp-for="Id" />
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Name" class="form-label fw-semibold">Task Title</label>
+                                    <input asp-for="Name" class="form-control" />
+                                    <span asp-validation-for="Name" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="DueDate" class="form-label fw-semibold">Due Date</label>
+                                    <input asp-for="DueDate" type="date" class="form-control" />
+                                    <span asp-validation-for="DueDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
 
-    <div class="form-group mb-3">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
+                        <div class="form-group mb-3">
+                            <label asp-for="Description" class="form-label fw-semibold">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="IsCompleted" class="form-label fw-semibold">Status</label>
+                                    <select asp-for="IsCompleted" class="form-control">
+                                        <option value="false">Pending</option>
+                                        <option value="true">Completed</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="AssignedUserId" class="form-label fw-semibold">Assign To</label>
+                                    <select asp-for="AssignedUserId" class="form-control">
+                                        <option value="">-- Unassigned --</option>
+                                        @foreach (var user in users)
+                                        {
+                                            <option value="@user.Id">@user.FullName</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="AssignedUserId" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Save Changes
+                            </button>
+                            <a asp-action="Details" asp-route-listId="@Model.TodoListId" asp-route-id="@Model.Id"
+                               class="btn btn-outline-info">
+                                <i class="fas fa-comments me-1"></i>View Comments
+                            </a>
+                            <a asp-action="Index" asp-route-listId="@Model.TodoListId" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Tags Section - COMPLETELY OUTSIDE the main form -->
+                    <div class="mt-4 pt-4 border-top">
+                        <div class="form-group">
+                            <label class="form-label fw-semibold">Tags</label>
+                            <div class="mb-2">
+                                @if (Model.Tags.Any())
+                                {
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach (var tag in Model.Tags)
+                                        {
+                                            <span class="badge bg-secondary text-white">
+                                                @tag
+                                                <form asp-controller="Tag" asp-action="RemoveTag" method="post" style="display:inline">
+                                                    <input type="hidden" name="taskId" value="@Model.Id" />
+                                                    <input type="hidden" name="listId" value="@Model.TodoListId" />
+                                                    <input type="hidden" name="tagName" value="@tag" />
+                                                    <button type="submit" class="btn btn-sm btn-link text-white p-0 ms-1" style="text-decoration: none;">
+                                                        ×
+                                                    </button>
+                                                </form>
+                                            </span>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No tags added</span>
+                                }
+                            </div>
+
+                            <!-- Separate form for adding tags -->
+                            <form asp-controller="Tag" asp-action="AddTag" method="post" class="d-flex gap-2">
+                                <input type="hidden" name="taskId" value="@Model.Id" />
+                                <input type="hidden" name="listId" value="@Model.TodoListId" />
+                                <input type="text" name="newTag" value="@Model.NewTag" class="form-control" placeholder="Add new tag" />
+                                <button type="submit" class="btn btn-outline-primary">Add Tag</button>
+                            </form>
+                            <small class="form-text text-muted">Add tags separately without saving the main form.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="Description"></label>
-        <textarea asp-for="Description" class="form-control"></textarea>
-        <span asp-validation-for="Description" class="text-danger"></span>
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="IsCompleted"></label>
-        <select asp-for="IsCompleted" class="form-control">
-            <option value="false">Pending</option>
-            <option value="true">Completed</option>
-        </select>
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="AssignedUserId"></label>
-        <select asp-for="AssignedUserId" class="form-control">
-            <option value="">-- Select User --</option>
-            @foreach (var user in users)
-            {
-                <option value="@user.Id">@user.FullName</option>
-            }
-        </select>
-        <span asp-validation-for="AssignedUserId" class="text-danger"></span>
-    </div>
-
-    <div class="form-group mb-3">
-        <label>Tags:</label>
-        <ul class="list-inline">
-            @foreach (var tag in Model.Tags)
-            {
-                <li class="list-inline-item badge bg-info text-dark me-1">@tag</li>
-            }
-        </ul>
-        <input type="text" name="NewTag" value="@Model.NewTag" class="form-control mt-1" placeholder="Add new tag" />
-    </div>
-
-    <button type="submit" class="btn btn-primary">Save</button>
-    <a asp-action="Index" asp-route-listId="@Model.TodoListId" class="btn btn-secondary">Cancel</a>
-</form>
-
-<hr />
-
-<h4>Comments</h4>
-
-<form asp-action="AddComment" method="post" class="mb-3">
-    @Html.AntiForgeryToken()
-    <input type="hidden" name="listId" value="@Model.TodoListId" />
-    <input type="hidden" name="taskId" value="@Model.Id" />
-    <textarea name="text" class="form-control mb-2" placeholder="Add a comment"></textarea>
-    <button type="submit" class="btn btn-primary btn-sm">Add Comment</button>
-</form>
-
-@foreach (var comment in Model.Comments)
-{
-    <div class="border p-2 mb-2 rounded">
-        <strong>@comment.UserId</strong>
-        <small>@comment.CreatedAt.ToLocalTime().ToString("g")</small>
-        <p>@comment.Text</p>
-
-        <form asp-action="EditComment" method="post" class="d-inline">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="listId" value="@Model.TodoListId" />
-            <input type="hidden" name="taskId" value="@Model.Id" />
-            <input type="hidden" name="commentId" value="@comment.Id" />
-            <input type="text" name="text" value="@comment.Text" class="form-control d-inline w-auto" />
-            <button type="submit" class="btn btn-sm btn-secondary">Edit</button>
-        </form>
-
-        <form asp-action="DeleteComment" method="post" class="d-inline">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="listId" value="@Model.TodoListId" />
-            <input type="hidden" name="taskId" value="@Model.Id" />
-            <input type="hidden" name="commentId" value="@comment.Id" />
-            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-        </form>
-    </div>
-}
-
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

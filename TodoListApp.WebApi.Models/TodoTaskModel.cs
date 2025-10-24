@@ -20,6 +20,8 @@ public class TodoTaskModel
 
     public string? AssignedUserId { get; set; } // NEW: user assigned to this task
 
+    public string? OwnerId { get; set; } // Owner of the task
+
     public List<string> Tags { get; set; } = new List<string>(); // NEW: associated tags
 
     public List<TodoCommentModel> Comments { get; set; } = new List<TodoCommentModel>(); // NEW: associated comments
