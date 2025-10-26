@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -6,20 +7,20 @@ namespace TodoListApp.WebApp.Services
 {
     public class UsersAuthWebApiService : IUsersAuthWebApiService
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IHttpClientFactory httpClientFactory;
+        private readonly IHttpContextAccessor httpContextAccessor;
 
         public UsersAuthWebApiService(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
         {
-            _httpClientFactory = httpClientFactory;
-            _httpContextAccessor = httpContextAccessor;
+            this.httpClientFactory = httpClientFactory;
+            this.httpContextAccessor = httpContextAccessor;
         }
 
         public string? JwtToken
         {
             get
             {
-                return _httpContextAccessor.HttpContext?.Request.Cookies["JwtToken"];
+                return this.httpContextAccessor.HttpContext?.Request.Cookies["JwtToken"];
             }
         }
 
@@ -39,7 +40,7 @@ namespace TodoListApp.WebApp.Services
 
         public async Task<bool> RegisterAsync(string username, string email, string password, string fullName)
         {
-            var client = _httpClientFactory.CreateClient("WebApiClient");
+            var client = this.httpClientFactory.CreateClient("WebApiClient");
             var model = new { Username = username, Email = email, Password = password, FullName = fullName };
             var response = await client.PostAsJsonAsync("api/auth/register", model);
             return response.IsSuccessStatusCode;
@@ -47,7 +48,7 @@ namespace TodoListApp.WebApp.Services
 
         public async Task<bool> LoginAsync(string username, string password)
         {
-            var client = _httpClientFactory.CreateClient("WebApiClient");
+            var client = this.httpClientFactory.CreateClient("WebApiClient");
             Console.WriteLine($"Calling API login for {username}");
 
             var response = await client.PostAsJsonAsync("api/auth/login", new { Username = username, Password = password });
@@ -76,10 +77,10 @@ namespace TodoListApp.WebApp.Services
             var tokenExpiration = jwtToken.ValidTo;
 
             // Local HTTPS check: only set Secure if HTTPS
-            var isHttps = _httpContextAccessor.HttpContext?.Request.IsHttps ?? false;
+            var isHttps = this.httpContextAccessor.HttpContext?.Request.IsHttps ?? false;
             Console.WriteLine("Request IsHttps: " + isHttps);
 
-            _httpContextAccessor.HttpContext?.Response.Cookies.Append(
+            this.httpContextAccessor.HttpContext?.Response.Cookies.Append(
                 "JwtToken",
                 result.Token,
                 new CookieOptions
@@ -95,10 +96,9 @@ namespace TodoListApp.WebApp.Services
             return true;
         }
 
-
         public void Logout()
         {
-            _httpContextAccessor.HttpContext?.Response.Cookies.Delete("JwtToken");
+            this.httpContextAccessor.HttpContext?.Response.Cookies.Delete("JwtToken");
         }
 
         private string? GetUserIdFromJwt(string? token)
@@ -134,7 +134,7 @@ namespace TodoListApp.WebApp.Services
 
         public bool IsJwtValid()
         {
-            if (string.IsNullOrEmpty(JwtToken))
+            if (string.IsNullOrEmpty(this.JwtToken))
             {
                 Console.WriteLine("JWT token is null or empty");
                 return false;
@@ -143,7 +143,7 @@ namespace TodoListApp.WebApp.Services
             try
             {
                 var handler = new JwtSecurityTokenHandler();
-                var jwt = handler.ReadJwtToken(JwtToken);
+                var jwt = handler.ReadJwtToken(this.JwtToken);
                 var isValid = jwt.ValidTo > DateTime.UtcNow;
 
                 Console.WriteLine($"Token validation: IsValid={isValid}, Expires={jwt.ValidTo}, CurrentTime={DateTime.UtcNow}");
@@ -157,11 +157,9 @@ namespace TodoListApp.WebApp.Services
             }
         }
 
-        private class LoginResponse
+        private sealed class LoginResponse
         {
             public string Token { get; set; } = default!;
         }
-
-
     }
 }

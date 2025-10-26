@@ -1,12 +1,13 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using TodoListApp.Services.Database.Entities;
 using TodoListApp.WebApi.Models;
+
 namespace TodoListApp.WebApi.Controllers;
 
 [AllowAnonymous]
@@ -14,66 +15,67 @@ namespace TodoListApp.WebApi.Controllers;
 [ApiController]
 public class AuthController : ControllerBase
 {
-    private readonly UserManager<User> _userManager;
-    private readonly SignInManager<User> _signInManager;
-    private readonly IConfiguration _config;
+    private readonly UserManager<User> userManager;
+    private readonly SignInManager<User> signInManager;
+    private readonly IConfiguration config;
 
-    public AuthController(UserManager<User> userManager,
-                          SignInManager<User> signInManager,
-                          IConfiguration config)
+    public AuthController(
+        UserManager<User> userManager,
+        SignInManager<User> signInManager,
+        IConfiguration config)
     {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _config = config;
+        this.userManager = userManager;
+        this.signInManager = signInManager;
+        this.config = config;
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterModel model)
     {
-        var user = new User { UserName = model.Username, Email = model.Email  , FullName = model.FullName};
-        var result = await _userManager.CreateAsync(user, model.Password);
+        var user = new User { UserName = model.Username, Email = model.Email, FullName = model.FullName};
+        var result = await this.userManager.CreateAsync(user, model.Password);
 
         if (!result.Succeeded)
         {
-            return BadRequest(result.Errors);
+            return this.BadRequest(result.Errors);
         }
 
-        return Ok();
+        return this.Ok();
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginModel model)
     {
-        var user = await _userManager.FindByNameAsync(model.Username);
+        var user = await this.userManager.FindByNameAsync(model.Username);
         if (user == null)
         {
-            return Unauthorized();
+            return this.Unauthorized();
         }
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+        var result = await this.signInManager.CheckPasswordSignInAsync(user, model.Password, false);
         if (!result.Succeeded)
         {
-            return Unauthorized();
+            return this.Unauthorized();
         }
 
-        await _signInManager.SignInAsync(user, isPersistent: false);
+        await this.signInManager.SignInAsync(user, isPersistent: false);
 
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Name, user.UserName!)
+            new Claim(ClaimTypes.Name, user.UserName!),
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
+            issuer: this.config["Jwt:Issuer"],
+            audience: this.config["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(double.Parse(_config["Jwt:DurationInMinutes"])),
+            expires: DateTime.UtcNow.AddMinutes(double.Parse(this.config["Jwt:DurationInMinutes"])),
             signingCredentials: creds
         );
 
-        return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
+        return this.Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
     }
 }

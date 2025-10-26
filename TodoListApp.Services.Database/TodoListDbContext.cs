@@ -20,7 +20,6 @@ namespace TodoListApp.Services.Database
 
         public DbSet<TodoCommentEntity> Comments { get; set; } = null!;
 
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             _ = modelBuilder.Entity<TodoListEntity>()

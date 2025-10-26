@@ -67,7 +67,7 @@ namespace TodoListApp.WebApi.Controllers
                 IsCompleted = task.IsCompleted,
                 TodoListId = task.TodoListId,
                 AssignedUserId = task.AssignedUserId,
-                OwnerId = task.OwnerId
+                OwnerId = task.OwnerId,
             };
 
             return this.Ok(model);
@@ -136,7 +136,7 @@ namespace TodoListApp.WebApi.Controllers
                 Description = model.Description,
                 DueDate = model.DueDate,
                 IsCompleted = model.IsCompleted,
-                TodoListId = todoListId
+                TodoListId = todoListId,
             };
 
             try
@@ -194,7 +194,7 @@ namespace TodoListApp.WebApi.Controllers
                     IsCompleted = t.IsCompleted,
                     TodoListId = t.TodoListId,
                     AssignedUserId = t.AssignedUserId,
-                    OwnerId = t.OwnerId
+                    OwnerId = t.OwnerId,
                 });
 
                 return this.Ok(models);

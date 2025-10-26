@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TodoListApp.Services.Database;
-using TodoListApp.Services.Database.Entities;
-using TodoListApp.WebApi.Models; // Add this
+using TodoListApp.WebApi.Models;
 
 namespace TodoListApp.WebApi.Controllers
 {
@@ -10,27 +9,27 @@ namespace TodoListApp.WebApi.Controllers
     [Route("api/users")]
     public class TodoUsersController : ControllerBase
     {
-        private readonly UsersDbContext _usersDb;
+        private readonly UsersDbContext usersDb;
 
         public TodoUsersController(UsersDbContext usersDb)
         {
-            _usersDb = usersDb;
+            this.usersDb = usersDb;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var users = await _usersDb.Users.ToListAsync();
+            var users = await this.usersDb.Users.ToListAsync();
 
             // Return TodoUserModel with UserName included
             var userModels = users.Select(u => new TodoUserModel
             {
                 Id = u.Id,
                 FullName = u.FullName,
-                UserName = u.UserName // Add this line
+                UserName = u.UserName,
             }).ToList();
 
-            return Ok(userModels);
+            return this.Ok(userModels);
         }
     }
 }
