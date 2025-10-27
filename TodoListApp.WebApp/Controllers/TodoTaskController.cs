@@ -40,21 +40,25 @@ namespace TodoListApp.WebApp.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                this.TempData["Error"] = ex.Message;
+                TempData["ErrorMessage"] = ex.Message;
                 return this.RedirectToAction("Index", "TodoList");
             }
             catch (System.Security.SecurityException ex)
             {
-                this.TempData["Error"] = ex.Message;
+                TempData["ErrorMessage"] = ex.Message;
+                return this.RedirectToAction("Index", "TodoList");
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
+            {
+                TempData["ErrorMessage"] = "You don't have permission to view tasks in this list.";
                 return this.RedirectToAction("Index", "TodoList");
             }
             catch (HttpRequestException ex)
             {
-                this.TempData["Error"] = $"API error: {ex.Message}";
+                TempData["ErrorMessage"] = $"API error: {ex.Message}";
                 return this.RedirectToAction("Index", "TodoList");
             }
         }
-
 
         public IActionResult Create(int listId)
         {
@@ -83,8 +87,25 @@ namespace TodoListApp.WebApp.Controllers
                 return this.View(task);
             }
 
-            await taskService.CreateAsync(task.TodoListId, task).ConfigureAwait(false);
-            return this.RedirectToAction("Index", new { listId = task.TodoListId });
+            try
+            {
+                await taskService.CreateAsync(task.TodoListId, task).ConfigureAwait(false);
+                TempData["SuccessMessage"] = "Task created successfully!";
+                return this.RedirectToAction("Index", new { listId = task.TodoListId });
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
+            {
+                TempData["ErrorMessage"] = "You don't have permission to create tasks in this list.";
+                this.ViewBag.ListId = task.TodoListId;
+                return this.View(task);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred while creating the task.";
+                this.ViewBag.ListId = task.TodoListId;
+                return this.View(task);
+                throw;
+            }
         }
 
         // GET: /TodoTask/Edit/1034?listId=123
@@ -95,34 +116,42 @@ namespace TodoListApp.WebApp.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            var task = await taskService.GetByIdAsync(listId, id);
-            if (task == null)
+            try
             {
-                return NotFound();
+                var task = await taskService.GetByIdAsync(listId, id);
+                if (task == null)
+                {
+                    return NotFound();
+                }
+
+                var tags = await tagService.GetTagsForTaskAsync(id);
+                var comments = await commentService.GetCommentsAsync(id);
+                var users = await taskService.GetAllUsersAsync();
+
+                var model = new TaskWithTagsViewModel
+                {
+                    Id = task.Id,
+                    Name = task.Name,
+                    Description = task.Description,
+                    DueDate = task.DueDate,
+                    IsCompleted = task.IsCompleted,
+                    TodoListId = task.TodoListId,
+                    AssignedUserId = task.AssignedUserId,
+                    Tags = tags,
+                    Comments = comments.ToList(),
+                    NewTag = string.Empty
+                };
+
+                ViewBag.ListId = listId;
+                ViewBag.Users = users;
+
+                return View(model);
             }
-
-            var tags = await tagService.GetTagsForTaskAsync(id);
-            var comments = await commentService.GetCommentsAsync(id);
-            var users = await taskService.GetAllUsersAsync();
-
-            var model = new TaskWithTagsViewModel
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
             {
-                Id = task.Id,
-                Name = task.Name,
-                Description = task.Description,
-                DueDate = task.DueDate,
-                IsCompleted = task.IsCompleted,
-                TodoListId = task.TodoListId,
-                AssignedUserId = task.AssignedUserId,
-                Tags = tags,
-                Comments = comments.ToList(),
-                NewTag = string.Empty
-            };
-
-            ViewBag.ListId = listId;
-            ViewBag.Users = users;
-
-            return View(model);
+                TempData["ErrorMessage"] = "You don't have permission to edit this task.";
+                return RedirectToAction("Index", new { listId = listId });
+            }
         }
 
         // POST: /TodoTask/Edit
@@ -137,8 +166,6 @@ namespace TodoListApp.WebApp.Controllers
 
             if (!ModelState.IsValid)
             {
-
-                // Print validation errors to console
                 foreach (var key in ModelState.Keys)
                 {
                     var state = ModelState[key];
@@ -153,29 +180,45 @@ namespace TodoListApp.WebApp.Controllers
                 return View(model);
             }
 
-            var addedtag = model.NewTag;
-            if (!string.IsNullOrWhiteSpace(addedtag))
+            try
             {
-                await tagService.AddTagToTaskAsync(model.Id, addedtag);
+                var addedtag = model.NewTag;
+                if (!string.IsNullOrWhiteSpace(addedtag))
+                {
+                    await tagService.AddTagToTaskAsync(model.Id, addedtag);
+                }
+
+                var apiModel = new TodoTaskModel
+                {
+                    Id = model.Id,
+                    Name = model.Name,
+                    Description = model.Description,
+                    DueDate = model.DueDate,
+                    IsCompleted = model.IsCompleted,
+                    TodoListId = model.TodoListId,
+                    AssignedUserId = model.AssignedUserId
+                };
+
+                await taskService.UpdateAsync(model.TodoListId, model.Id, apiModel);
+                TempData["SuccessMessage"] = "Task updated successfully!";
+                return RedirectToAction("Index", new { listId = model.TodoListId });
             }
-            // Map ViewModel -> API Model
-            var apiModel = new TodoTaskModel
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
             {
-                Id = model.Id,
-                Name = model.Name,
-                Description = model.Description,
-                DueDate = model.DueDate,
-                IsCompleted = model.IsCompleted,
-                TodoListId = model.TodoListId,
-                AssignedUserId = model.AssignedUserId
-            };
-
-            await taskService.UpdateAsync(model.TodoListId, model.Id, apiModel);
-
-            return RedirectToAction("Index", new { listId = model.TodoListId });
+                TempData["ErrorMessage"] = "You don't have permission to edit tasks in this list.";
+                ViewBag.ListId = model.TodoListId;
+                ViewBag.Users = await taskService.GetAllUsersAsync();
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred while updating the task.";
+                ViewBag.ListId = model.TodoListId;
+                ViewBag.Users = await taskService.GetAllUsersAsync();
+                return View(model);
+                throw;
+            }
         }
-
-
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -188,11 +231,25 @@ namespace TodoListApp.WebApp.Controllers
 
             if (string.IsNullOrWhiteSpace(text))
             {
-                TempData["Error"] = "Comment cannot be empty.";
+                TempData["ErrorMessage"] = "Comment cannot be empty.";
                 return RedirectToAction("Details", new { listId, id = taskId });
             }
 
-            await commentService.AddCommentAsync(taskId, text).ConfigureAwait(false);
+            try
+            {
+                await commentService.AddCommentAsync(taskId, text).ConfigureAwait(false);
+                TempData["SuccessMessage"] = "Comment added successfully!";
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
+            {
+                TempData["ErrorMessage"] = "You don't have permission to add comments to this task.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred while adding the comment.";
+                throw;
+            }
+
             return RedirectToAction("Details", new { listId, id = taskId });
         }
 
@@ -207,11 +264,25 @@ namespace TodoListApp.WebApp.Controllers
 
             if (string.IsNullOrWhiteSpace(text))
             {
-                TempData["Error"] = "Comment cannot be empty.";
+                TempData["ErrorMessage"] = "Comment cannot be empty.";
                 return RedirectToAction("Details", new { listId, id = taskId });
             }
 
-            await commentService.EditCommentAsync(taskId, commentId, text).ConfigureAwait(false);
+            try
+            {
+                await commentService.EditCommentAsync(taskId, commentId, text).ConfigureAwait(false);
+                TempData["SuccessMessage"] = "Comment updated successfully!";
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
+            {
+                TempData["ErrorMessage"] = "You don't have permission to edit comments on this task.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred while updating the comment.";
+                throw;
+            }
+
             return RedirectToAction("Details", new { listId, id = taskId });
         }
 
@@ -224,10 +295,23 @@ namespace TodoListApp.WebApp.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            await commentService.DeleteCommentAsync(taskId, commentId).ConfigureAwait(false);
+            try
+            {
+                await commentService.DeleteCommentAsync(taskId, commentId).ConfigureAwait(false);
+                TempData["SuccessMessage"] = "Comment deleted successfully!";
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
+            {
+                TempData["ErrorMessage"] = "You don't have permission to delete comments from this task.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred while deleting the comment.";
+                throw;
+            }
+
             return RedirectToAction("Details", new { listId, id = taskId });
         }
-
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -238,8 +322,22 @@ namespace TodoListApp.WebApp.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            bool isCompleted = status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
-            await taskService.UpdateStatusAsync(taskId, isCompleted);
+            try
+            {
+                bool isCompleted = status.Equals("Completed", StringComparison.OrdinalIgnoreCase);
+                await taskService.UpdateStatusAsync(taskId, isCompleted);
+                TempData["SuccessMessage"] = "Task status updated successfully!";
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
+            {
+                TempData["ErrorMessage"] = "You don't have permission to update the status of this task.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred while updating the task status.";
+                throw;
+            }
+
             return RedirectToAction("Index");
         }
 
@@ -252,13 +350,26 @@ namespace TodoListApp.WebApp.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            if (!string.IsNullOrWhiteSpace(newUserId))
+            try
             {
-                await taskService.ReassignTaskAsync(taskId, newUserId);
+                if (!string.IsNullOrWhiteSpace(newUserId))
+                {
+                    await taskService.ReassignTaskAsync(taskId, newUserId);
+                    TempData["SuccessMessage"] = "Task reassigned successfully!";
+                }
             }
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
+            {
+                TempData["ErrorMessage"] = "You don't have permission to reassign this task.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred while reassigning the task.";
+                throw;
+            }
+
             return RedirectToAction("Index");
         }
-
 
         // GET: /TodoTask/Details/1046?listId=37
         public async Task<IActionResult> Details(int listId, int id)
@@ -268,36 +379,44 @@ namespace TodoListApp.WebApp.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            var task = await taskService.GetByIdAsync(listId, id);
-            if (task == null)
+            try
             {
-                return NotFound();
+                var task = await taskService.GetByIdAsync(listId, id);
+                if (task == null)
+                {
+                    return NotFound();
+                }
+
+                var tags = await tagService.GetTagsForTaskAsync(id);
+                var comments = await commentService.GetCommentsAsync(id);
+                var users = await taskService.GetAllUsersAsync();
+
+                var model = new TaskWithTagsViewModel
+                {
+                    Id = task.Id,
+                    Name = task.Name,
+                    Description = task.Description,
+                    DueDate = task.DueDate,
+                    IsCompleted = task.IsCompleted,
+                    TodoListId = task.TodoListId,
+                    AssignedUserId = task.AssignedUserId,
+                    Tags = tags,
+                    Comments = comments.ToList(),
+                    NewTag = string.Empty,
+                    OwnerId = task.OwnerId,
+                };
+
+                ViewBag.ListId = listId;
+                ViewBag.Users = users;
+                ViewBag.TaskOwnerId = task.OwnerId;
+                ViewBag.CurrentUserId = await GetCurrentApiUserIdAsync();
+                return View(model);
             }
-
-            var tags = await tagService.GetTagsForTaskAsync(id);
-            var comments = await commentService.GetCommentsAsync(id);
-            var users = await taskService.GetAllUsersAsync();
-
-            var model = new TaskWithTagsViewModel
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
             {
-                Id = task.Id,
-                Name = task.Name,
-                Description = task.Description,
-                DueDate = task.DueDate,
-                IsCompleted = task.IsCompleted,
-                TodoListId = task.TodoListId,
-                AssignedUserId = task.AssignedUserId,
-                Tags = tags,
-                Comments = comments.ToList(),
-                NewTag = string.Empty,
-                OwnerId = task.OwnerId,
-            };
-
-            ViewBag.ListId = listId;
-            ViewBag.Users = users;
-            ViewBag.TaskOwnerId = task.OwnerId;
-            ViewBag.CurrentUserId = await GetCurrentApiUserIdAsync();
-            return View(model);
+                TempData["ErrorMessage"] = "You don't have permission to view this task.";
+                return RedirectToAction("Index", new { listId = listId });
+            }
         }
 
         // GET: /TodoTask/Delete/1046?listId=37
@@ -308,15 +427,50 @@ namespace TodoListApp.WebApp.Controllers
                 return RedirectToAction("Login", "Auth");
             }
 
-            var task = await taskService.GetByIdAsync(listId, id);
-            if (task == null)
+            try
             {
-                return NotFound();
-            }
+                var task = await taskService.GetByIdAsync(listId, id);
+                if (task == null)
+                {
+                    return NotFound();
+                }
 
-            return View(task); // A simple confirmation page
+                return View(task);
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
+            {
+                TempData["ErrorMessage"] = "You don't have permission to delete this task.";
+                return RedirectToAction("Index", new { listId = listId });
+            }
         }
 
+        // POST: /TodoTask/Delete
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int listId, int id)
+        {
+            if (!authService.IsJwtPresent() || !authService.IsJwtValid())
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            try
+            {
+                await taskService.DeleteAsync(listId, id);
+                TempData["SuccessMessage"] = "Task deleted successfully!";
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
+            {
+                TempData["ErrorMessage"] = "You don't have permission to delete tasks from this list.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred while deleting the task.";
+                throw;
+            }
+
+            return RedirectToAction("Index", new { listId = listId });
+        }
 
         public async Task<IActionResult> AssignedTasks(string? status, string? sortBy)
         {
@@ -333,22 +487,26 @@ namespace TodoListApp.WebApp.Controllers
                 ViewBag.Users = await taskService.GetAllUsersAsync();
                 return View(tasks);
             }
+            catch (HttpRequestException ex) when (ex.Message.Contains("403"))
+            {
+                TempData["ErrorMessage"] = "You don't have permission to view assigned tasks.";
+                return RedirectToAction("Index", "TodoList");
+            }
             catch (HttpRequestException ex)
             {
-                TempData["Error"] = $"API error: {ex.Message}";
+                TempData["ErrorMessage"] = $"API error: {ex.Message}";
                 return RedirectToAction("Index", "TodoList");
             }
         }
 
         private async Task<string> GetCurrentApiUserIdAsync()
         {
-            var currentUsername = User.Identity?.Name; // "1R3X5" from WebApp Identity
+            var currentUsername = User.Identity?.Name;
 
             if (string.IsNullOrEmpty(currentUsername))
             {
                 return "unknown-user";
             }
-
 
             var apiUsers = await taskService.GetAllUsersAsync();
             var apiUser = apiUsers.FirstOrDefault(u =>
@@ -357,14 +515,11 @@ namespace TodoListApp.WebApp.Controllers
 
             if (apiUser != null)
             {
-                return apiUser.Id; // Returns the API GUID
+                return apiUser.Id;
             }
 
-            // If not found, log warning
             Console.WriteLine($"Warning: No API user found for WebApp user '{currentUsername}'");
             return currentUsername;
-
-
         }
     }
 }

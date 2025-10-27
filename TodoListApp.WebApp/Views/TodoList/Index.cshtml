@@ -1,52 +1,233 @@
 @model IEnumerable<TodoListApp.WebApi.Models.TodoListModel>
 @{
     ViewData["Title"] = "Todo Lists";
+    var availableUsers = ViewBag.AvailableUsers as IEnumerable<TodoListApp.WebApi.Models.TodoUserModel> ?? new List<TodoListApp.WebApi.Models.TodoUserModel>();
+    var sharedLists = ViewBag.SharedLists as IEnumerable<TodoListApp.WebApi.Models.SharedTodoListDto> ?? new List<TodoListApp.WebApi.Models.SharedTodoListDto>();
 }
 
+<div class="container mt-3">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>Success!</strong> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error!</strong> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+</div>
+
 <div class="container mt-4">
-    <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Todo Lists</h2>
-            <a asp-action="Create" class="btn btn-success">Add New List</a>
+    <!-- Tabs for My Lists vs Shared With Me -->
+    <ul class="nav nav-tabs mb-4" id="listsTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="my-lists-tab" data-bs-toggle="tab" data-bs-target="#my-lists" type="button" role="tab">
+                My Lists
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="shared-tab" data-bs-toggle="tab" data-bs-target="#shared-lists" type="button" role="tab">
+                Shared With Me
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="listsTabContent">
+        <!-- MY LISTS TAB -->
+        <div class="tab-pane fade show active" id="my-lists" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0">My Todo Lists</h2>
+                    <a asp-action="Create" class="btn btn-success">Add New List</a>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover align-middle text-center mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Role</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model != null && Model.Any())
+                                {
+                                    foreach (var item in Model)
+                                    {
+                                        <tr>
+                                            <td>@item.Id</td>
+                                            <td>@item.Name</td>
+                                            <td>@item.Description</td>
+                                            <td>
+                                                <span class="badge bg-primary">Owner</span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-info me-1"
+                                                        onclick="showShareModal(@item.Id, '@item.Name.Replace("'", "\\'")')">
+                                                    Share
+                                                </button>
+                                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning me-1">Edit</a>
+                                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger me-1">Delete</a>
+                                                <a asp-controller="TodoTask" asp-action="Index" asp-route-listId="@item.Id" class="btn btn-sm btn-outline-primary">View Tasks</a>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-muted">No todo lists available.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle text-center mb-0">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Description</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model != null && Model.Any())
-                        {
-                            foreach (var item in Model)
-                            {
+        <!-- SHARED WITH ME TAB -->
+        <div class="tab-pane fade" id="shared-lists" role="tabpanel">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h2 class="mb-0">Lists Shared With Me</h2>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover align-middle text-center mb-0">
+                            <thead class="table-dark">
                                 <tr>
-                                    <td>@item.Id</td>
-                                    <td>@item.Name</td>
-                                    <td>@item.Description</td>
-                                    <td>
-                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning me-1">Edit</a>
-                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger me-1">Delete</a>
-                                        <a asp-controller="TodoTask" asp-action="Index" asp-route-listId="@item.Id" class="btn btn-sm btn-outline-primary">View Tasks</a>
-                                    </td>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Owner</th>
+                                    <th>My Role</th>
+                                    <th>Actions</th>
                                 </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="4" class="text-muted">No todo lists available.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                            </thead>
+                            <tbody>
+                                @if (sharedLists.Any())
+                                {
+                                    foreach (var list in sharedLists)
+                                    {
+                                        <tr>
+                                            <td>@list.Name</td>
+                                            <td>@list.Description</td>
+                                            <td>@list.OwnerName</td>
+                                            <td>
+                                                <span class="badge @(list.Role == "Editor" ? "bg-warning" : "bg-info")">
+                                                    @list.Role
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a asp-controller="TodoTask" asp-action="Index" asp-route-listId="@list.TodoListId" class="btn btn-sm btn-outline-primary">
+                                                    View Tasks
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-muted">No lists shared with you yet.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share List: <span id="shareListName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <!-- CHANGED: Added explicit controller and action routing -->
+            <form method="post" asp-controller="TodoList" asp-action="ShareList" id="shareForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="shareListId" name="listId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="selectedUser" class="form-label">Select User</label>
+                        <select class="form-select" id="selectedUser" name="targetUserId" required>
+                            <option value="">-- Select a user --</option>
+                            @foreach (var user in availableUsers)
+                            {
+                                <option value="@user.Id">@user.UserName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userRole" class="form-label">Role</label>
+                        <select class="form-select" id="userRole" name="role" required>
+                            <option value="Viewer">Viewer (Can only view)</option>
+                            <option value="Editor">Editor (Can edit tasks)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Share</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Minimal JavaScript - Only for UI
+        function showShareModal(listId, listName) {
+            document.getElementById('shareListName').textContent = listName;
+            document.getElementById('shareListId').value = listId;
+            document.getElementById('selectedUser').value = '';
+            document.getElementById('userRole').value = 'Viewer';
+
+            const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+            modal.show();
+        }
+
+        // Handle form submission with basic feedback
+        document.getElementById('shareForm').addEventListener('submit', function (e) {
+            console.log("Form submitting...");
+
+            const userSelect = document.getElementById('selectedUser');
+            if (!userSelect.value) {
+                e.preventDefault();
+                alert('Please select a user');
+                userSelect.focus();
+                return false;
+            }
+
+            console.log("Form submitted with:", {
+                listId: document.getElementById('shareListId').value,
+                targetUserId: userSelect.value,
+                role: document.getElementById('userRole').value
+            });
+        });
+
+        // Refresh shared lists when tab is shown (optional enhancement)
+        document.getElementById('shared-tab').addEventListener('shown.bs.tab', function () {
+            console.log('Shared tab shown - lists are loaded server-side');
+        });
+    </script>
+}

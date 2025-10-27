@@ -10,15 +10,18 @@ public class TodoListShareService : ITodoListShareService
     private readonly TodoListDbContext context;
     private readonly ILogger<TodoListShareService> logger;
     private readonly IPermissionService permissionService;
+    private readonly UsersDbContext usersContext;
 
     public TodoListShareService(
         TodoListDbContext context,
         ILogger<TodoListShareService> logger,
-        IPermissionService permissionService)
+        IPermissionService permissionService,
+        UsersDbContext usersContext)
     {
         this.context = context;
         this.logger = logger;
         this.permissionService = permissionService;
+        this.usersContext = usersContext;
     }
 
     public async Task ShareTodoListAsync(int todoListId, string targetUserId, string role, string ownerId)
@@ -158,24 +161,50 @@ public class TodoListShareService : ITodoListShareService
     {
         this.logger.LogInformation("Getting todo lists shared with user {UserId}", userId);
 
-        var sharedLists = await this.context.Set<TodoListUser>()
-       .Where(tlu => tlu.UserId == userId) // User is in TodoListUsers
-       .Join(
-            this.context.TodoLists,
-           tlu => tlu.TodoListId,
-           tl => tl.Id,
-           (tlu, tl) => new { TodoListUser = tlu, TodoList = tl })
-       .Where(x => x.TodoList.OwnerId != userId) // EXCLUDE lists where user is the owner
-       .Select(x => new SharedTodoListDto
-       {
-           TodoListId = x.TodoList.Id,
-           Name = x.TodoList.Name,
-           Description = x.TodoList.Description,
-           OwnerName = x.TodoList.OwnerId, // This should be the actual owner's username
-           Role = x.TodoListUser.Role,
-           SharedAt = DateTime.UtcNow // You might want to add CreatedAt to TodoListUser
-       })
-       .ToListAsync();
-        return sharedLists;
+        // First get the shared lists data with owner IDs
+        var sharedListsData = await this.context.Set<TodoListUser>()
+            .Where(tlu => tlu.UserId == userId)
+            .Join(
+                this.context.TodoLists,
+                tlu => tlu.TodoListId,
+                tl => tl.Id,
+                (tlu, tl) => new { TodoListUser = tlu, TodoList = tl })
+            .Where(x => x.TodoList.OwnerId != userId)
+            .Select(x => new
+            {
+                TodoListId = x.TodoList.Id,
+                Name = x.TodoList.Name,
+                Description = x.TodoList.Description,
+                OwnerId = x.TodoList.OwnerId, // Store owner ID
+                Role = x.TodoListUser.Role
+            })
+            .ToListAsync();
+
+        // Get usernames for all owner IDs
+        var ownerIds = sharedListsData.Select(x => x.OwnerId).Distinct().ToList();
+        var ownerUsernames = await usersContext.Users
+            .Where(u => ownerIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.UserName);
+
+        // Map to DTOs with actual usernames
+        var result = sharedListsData.Select(x => new SharedTodoListDto
+        {
+            TodoListId = x.TodoListId,
+            Name = x.Name,
+            Description = x.Description,
+            OwnerName = ownerUsernames.ContainsKey(x.OwnerId) ? ownerUsernames[x.OwnerId] : "Unknown User",
+            Role = x.Role,
+            SharedAt = DateTime.UtcNow
+        }).ToList();
+
+        // Debug logging
+        this.logger.LogInformation("Found {Count} shared lists for user {UserId}", result.Count, userId);
+        foreach (var list in result)
+        {
+            this.logger.LogInformation("Shared List: ID={TodoListId}, Name='{Name}', Owner='{OwnerName}', Role={Role}",
+                list.TodoListId, list.Name, list.OwnerName, list.Role);
+        }
+
+        return result;
     }
 }

@@ -13,5 +13,9 @@ namespace TodoListApp.WebApp.Services
         Task<bool> UpdateTodoListAsync(TodoListModel updatedList);
 
         Task<bool> DeleteTodoListAsync(int id);
+
+        Task<bool> ShareTodoListAsync(int todoListId, string targetUserId, string role);
+
+        Task<IEnumerable<SharedTodoListDto>> GetSharedWithMeAsync();
     }
 }

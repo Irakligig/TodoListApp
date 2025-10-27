@@ -58,5 +58,62 @@ namespace TodoListApp.WebApp.Services
             res.EnsureSuccessStatusCode();
             return res.IsSuccessStatusCode;
         }
+
+        public async Task<bool> ShareTodoListAsync(int todoListId, string targetUserId, string role)
+        {
+            AttachJwt();
+            var request = new { targetUserId, role };
+            var res = await _http.PostAsJsonAsync($"/api/todolistshare/todolists/{todoListId}/share", request);
+
+            if (res.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            // Optional: Read error message for debugging
+            var error = await res.Content.ReadAsStringAsync();
+            return false;
+        }
+
+        public async Task<IEnumerable<SharedTodoListDto>> GetSharedWithMeAsync()
+        {
+            try
+            {
+                AttachJwt();
+                var res = await _http.GetAsync("/api/todolistshare/shared-with-me");
+
+                Console.WriteLine($"GetSharedWithMe Status: {res.StatusCode}");
+
+                if (res.IsSuccessStatusCode)
+                {
+                    var content = await res.Content.ReadAsStringAsync();
+                    Console.WriteLine($"GetSharedWithMe Raw Response: {content}");
+
+                    var sharedLists = await res.Content.ReadFromJsonAsync<IEnumerable<SharedTodoListDto>>();
+
+                    Console.WriteLine($"GetSharedWithMe parsed {sharedLists?.Count() ?? 0} lists");
+                    if (sharedLists != null)
+                    {
+                        foreach (var list in sharedLists)
+                        {
+                            Console.WriteLine($"List {list.TodoListId}: '{list.Name}' - {list.Description} (Role: {list.Role})");
+                        }
+                    }
+
+                    return sharedLists ?? new List<SharedTodoListDto>();
+                }
+                else
+                {
+                    var error = await res.Content.ReadAsStringAsync();
+                    Console.WriteLine($"GetSharedWithMe error: {error}");
+                    return new List<SharedTodoListDto>();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw;
+                return new List<SharedTodoListDto>();
+            }
+        }
     }
 }

@@ -131,17 +131,33 @@ public class PermissionService : IPermissionService
 
     public async Task<bool> CanManageCommentsAsync(int taskId, string userId)
     {
-        var task = await _context.TodoTasks
-            .Include(t => t.TodoList)
-            .FirstOrDefaultAsync(t => t.Id == taskId);
-
-        if (task == null)
+        try
         {
-            return false;
-        }
+            var task = await _context.TodoTasks
+                .Include(t => t.TodoList)
+                .FirstOrDefaultAsync(t => t.Id == taskId);
 
-        // Owners, editors, and assigned users can manage comments
-        var role = await GetUserRoleAsync(task.TodoListId, userId);
-        return role == "Owner" || role == "Editor" || task.AssignedUserId == userId;
+            if (task == null)
+            {
+                return false;
+            }
+
+            var role = await GetUserRoleAsync(task.TodoListId, userId);
+
+            if (string.IsNullOrEmpty(role))
+            {
+                return false; // User has no access to this list
+            }
+
+            // ALL users with access to the task can manage comments (including Viewers)
+            // This allows Viewers to participate in discussions
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in CanManageCommentsAsync");
+            return false;
+            throw;
+        }
     }
 }
