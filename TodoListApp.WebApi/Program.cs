@@ -31,6 +31,9 @@ builder.Services.AddScoped<ITodoListDatabaseService, TodoListDatabaseService>();
 builder.Services.AddScoped<ITodoTaskDatabaseService, TodoTaskDatabaseService>();
 builder.Services.AddScoped<ITodoTaskTagDatabaseService, TodoTaskTagDatabaseService>();
 builder.Services.AddScoped<ITodoCommentDatabaseService, TodoCommentDatabaseService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<ITodoListShareService, TodoListShareService>();
+
 builder.Services.AddControllers();
 
 builder.Services.AddControllers()

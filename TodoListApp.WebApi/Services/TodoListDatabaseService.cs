@@ -9,11 +9,13 @@ public class TodoListDatabaseService : ITodoListDatabaseService
 {
     private readonly TodoListDbContext context;
     private readonly ILogger<TodoListDatabaseService> logger;
+    private readonly IPermissionService permissionService;
 
-    public TodoListDatabaseService(TodoListDbContext context, ILogger<TodoListDatabaseService> logger)
+    public TodoListDatabaseService(TodoListDbContext context, ILogger<TodoListDatabaseService> logger, IPermissionService permissionService)
     {
         this.context = context;
         this.logger = logger;
+        this.permissionService = permissionService;
     }
 
     public async Task AddTodoListAsync(TodoList todoList, string ownerId)
@@ -37,6 +39,16 @@ public class TodoListDatabaseService : ITodoListDatabaseService
         _ = await this.context.TodoLists.AddAsync(entity);
         _ = await this.context.SaveChangesAsync();
 
+        var todoListUser = new TodoListUser
+        {
+            TodoListId = entity.Id,
+            UserId = ownerId,
+            Role = "Owner",
+        };
+
+        _ = await this.context.Set<TodoListUser>().AddAsync(todoListUser);
+        _ = await this.context.SaveChangesAsync();
+
         // Optionally update DTO with generated Id
         todoList.Id = entity.Id;
         this.logger.LogInformation("Successfully added todo list {ListId} '{ListName}'", todoList.Id, todoList.Name);
@@ -53,7 +65,7 @@ public class TodoListDatabaseService : ITodoListDatabaseService
             throw new KeyNotFoundException($"Todo list with Id {todoListId} not found.");
         }
 
-        if (existing.OwnerId != ownerId)
+        if (!await permissionService.CanDeleteTodoListAsync(todoListId, ownerId))
         {
             this.logger.LogWarning("User {OwnerId} does not have permission to delete todo list {TodoListId}", ownerId, todoListId);
             throw new UnauthorizedAccessException("You do not have permission to delete this todo list.");
@@ -66,10 +78,10 @@ public class TodoListDatabaseService : ITodoListDatabaseService
 
     public async Task<IEnumerable<TodoList>> GetAllTodoListsAsync(string ownerId)
     {
-        this.logger.LogInformation("Getting all todo lists for owner {OwnerId}", ownerId);
+        this.logger.LogInformation("Getting all todo lists for user {UserId}", ownerId);
 
-        // Return only the lists owned by the logged-in user
-        var lists = await this.context.TodoLists
+        // Get lists where user is owner or has a role in TodoListUsers
+        var ownedLists = await this.context.TodoLists
             .Where(t => t.OwnerId == ownerId)
             .Select(t => new TodoList
             {
@@ -80,25 +92,43 @@ public class TodoListDatabaseService : ITodoListDatabaseService
             })
             .ToListAsync();
 
-        this.logger.LogInformation("Retrieved {ListCount} todo lists for owner {OwnerId}", lists.Count, ownerId);
-        return lists;
+        var sharedLists = await this.context.Set<TodoListUser>()
+            .Where(tlu => tlu.UserId == ownerId)
+            .Join(this.context.TodoLists,
+                  tlu => tlu.TodoListId,
+                  tl => tl.Id,
+                  (tlu, tl) => new TodoList
+                  {
+                      Id = tl.Id,
+                      Name = tl.Name,
+                      Description = tl.Description,
+                      OwnerId = tl.OwnerId,
+                  })
+            .ToListAsync();
+
+        var allLists = ownedLists
+        .Concat(sharedLists)
+        .DistinctBy(list => list.Id) // This removes duplicates by ID
+        .ToList();
+        this.logger.LogInformation("Retrieved {ListCount} todo lists for user {UserId}", allLists.Count, ownerId);
+        return allLists;
     }
 
     public async Task UpdateTodoListAsync(TodoList todoList, string ownerId)
     {
         this.logger.LogInformation("Updating todo list {TodoListId} for owner {OwnerId}", todoList.Id, ownerId);
 
+        if (!await permissionService.CanEditTodoListAsync(todoList.Id, ownerId))
+        {
+            this.logger.LogWarning("User {OwnerId} does not have permission to update todo list {TodoListId}", ownerId, todoList.Id);
+            throw new UnauthorizedAccessException("You do not have permission to update this todo list.");
+        }
+
         var existing = await this.context.TodoLists.FindAsync(todoList.Id);
         if (existing == null)
         {
             this.logger.LogWarning("Todo list with Id {TodoListId} not found", todoList.Id);
             throw new KeyNotFoundException($"Todo list with Id {todoList.Id} not found.");
-        }
-
-        if (existing.OwnerId != ownerId)
-        {
-            this.logger.LogWarning("User {OwnerId} does not have permission to update todo list {TodoListId}", ownerId, todoList.Id);
-            throw new UnauthorizedAccessException("You do not have permission to update this todo list.");
         }
 
         // Update properties

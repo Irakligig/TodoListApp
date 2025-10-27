@@ -108,7 +108,7 @@ public class TodoListController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return this.Forbid(ex.Message);
+            return this.StatusCode(403, ex.Message);
         }
     }
 
@@ -129,7 +129,7 @@ public class TodoListController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return this.Forbid(ex.Message);
+            return this.StatusCode(403, ex.Message);
         }
     }
 }

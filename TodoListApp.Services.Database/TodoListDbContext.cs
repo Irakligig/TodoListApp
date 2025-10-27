@@ -40,6 +40,20 @@ namespace TodoListApp.Services.Database
                 .HasOne(tt => tt.Tag) // from todotasktagperspective
                 .WithMany(t => t.TaskTags) // from todotagperspective
                 .HasForeignKey(tt => tt.TagId);
+
+            _ = modelBuilder.Entity<TodoListUser>(entity =>
+            {
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Role)
+                      .HasMaxLength(20)
+                      .IsRequired();
+
+                // optional: link to TodoListEntity (no navigation to User)
+                _ = entity.HasOne<TodoListEntity>()
+                      .WithMany()
+                      .HasForeignKey(x => x.TodoListId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

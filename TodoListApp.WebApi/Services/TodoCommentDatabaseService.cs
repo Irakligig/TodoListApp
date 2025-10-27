@@ -9,12 +9,14 @@ public class TodoCommentDatabaseService : ITodoCommentDatabaseService
     private readonly TodoListDbContext context;
     private readonly ITodoTaskDatabaseService taskService;
     private readonly ILogger<TodoCommentDatabaseService> logger;
+    private readonly IPermissionService permissionService;
 
-    public TodoCommentDatabaseService(TodoListDbContext db, ITodoTaskDatabaseService taskService, ILogger<TodoCommentDatabaseService> logger)
+    public TodoCommentDatabaseService(TodoListDbContext db, ITodoTaskDatabaseService taskService, ILogger<TodoCommentDatabaseService> logger,IPermissionService permissionService)
     {
         this.context = db;
         this.taskService = taskService;
         this.logger = logger;
+        this.permissionService = permissionService;
     }
 
     private static TodoCommentEntity MapEntityToModel(TodoCommentEntity entity)
@@ -34,8 +36,7 @@ public class TodoCommentDatabaseService : ITodoCommentDatabaseService
     {
         this.logger.LogInformation("Getting comments for task {TaskId} for user {UserId}", taskId, userId);
 
-        var task = await this.taskService.GetTaskByIdAsync(taskId, userId);
-        if (task == null)
+        if (!await this.permissionService.CanViewTaskAsync(taskId, userId))
         {
             this.logger.LogWarning("User {UserId} does not have access to task {TaskId}", userId, taskId);
             throw new UnauthorizedAccessException("You do not have access to this task.");
@@ -54,11 +55,10 @@ public class TodoCommentDatabaseService : ITodoCommentDatabaseService
     {
         this.logger.LogInformation("Adding comment to task {TaskId} by user {UserId} ({UserName})", taskId, userId, userName);
 
-        var task = await this.taskService.GetTaskByIdAsync(taskId, userId);
-        if (task == null)
+        if (!await this.permissionService.CanManageCommentsAsync(taskId, userId))
         {
-            this.logger.LogWarning("User {UserId} does not have access to add comment to task {TaskId}", userId, taskId);
-            throw new UnauthorizedAccessException("You do not have access to this task.");
+            this.logger.LogWarning("User {UserId} does not have permission to add comment to task {TaskId}", userId, taskId);
+            throw new UnauthorizedAccessException("You do not have permission to add comments to this task.");
         }
 
         var entity = new TodoCommentEntity
@@ -88,17 +88,18 @@ public class TodoCommentDatabaseService : ITodoCommentDatabaseService
             throw new Exception("Comment not found.");
         }
 
-        var task = await this.taskService.GetTaskByIdAsync(entity.TaskId, userId);
-        if (task == null)
+        if (!await permissionService.CanManageCommentsAsync(entity.TaskId, userId))
         {
-            this.logger.LogWarning("User {UserId} does not have access to edit comment {CommentId}", userId, commentId);
-            throw new UnauthorizedAccessException("You do not have access to this task.");
+            this.logger.LogWarning("User {UserId} does not have permission to edit comments for task {TaskId}", userId, entity.TaskId);
+            throw new UnauthorizedAccessException("You do not have permission to edit comments for this task.");
         }
 
-        if (entity.UserId != userId && task.AssignedUserId != userId && task.OwnerId != userId)
+        // Additional check: Users can only edit their own comments
+        if (entity.UserId != userId)
         {
-            this.logger.LogWarning("User {UserId} is not authorized to edit comment {CommentId}", userId, commentId);
-            throw new UnauthorizedAccessException("You cannot edit this comment.");
+            this.logger.LogWarning("User {UserId} is not authorized to edit comment {CommentId} created by user {CommentUserId}",
+                userId, commentId, entity.UserId);
+            throw new UnauthorizedAccessException("You can only edit your own comments.");
         }
 
         entity.Text = newText;
@@ -114,25 +115,33 @@ public class TodoCommentDatabaseService : ITodoCommentDatabaseService
         if (entity == null)
         {
             this.logger.LogWarning("Comment {CommentId} not found", commentId);
-            throw new Exception("Comment not found.");
+            throw new KeyNotFoundException($"Comment {commentId} not found."); // Use KeyNotFoundException
         }
 
-        var task = await taskService.GetTaskByIdAsync(entity.TaskId, userId);
-        if (task == null)
+        // Check if user has permission to manage comments for this task
+        if (!await this.permissionService.CanManageCommentsAsync(entity.TaskId, userId))
         {
-            this.logger.LogWarning("User {UserId} does not have access to delete comment {CommentId}", userId, commentId);
-            throw new UnauthorizedAccessException("You do not have access to this task.");
+            this.logger.LogWarning("User {UserId} does not have permission to delete comments for task {TaskId}", userId, entity.TaskId);
+            throw new UnauthorizedAccessException("You do not have permission to delete comments for this task.");
         }
 
-        // ONLY allow task owners to delete comments
-        if (task.OwnerId != userId)
+        // Additional check: Users can only delete their own comments unless they have higher privileges
+        // Comment authors can delete their own comments
+        // Owners/Editors can delete any comments in tasks they manage
+        bool isCommentAuthor = entity.UserId == userId;
+        bool canManageTasks = await permissionService.CanManageTasksAsync(
+            (await context.TodoTasks.FirstOrDefaultAsync(t => t.Id == entity.TaskId))?.TodoListId ?? 0,
+            userId);
+
+        if (!isCommentAuthor && !canManageTasks)
         {
-            this.logger.LogWarning("User {UserId} is not authorized to delete comment {CommentId}. Only task owners can delete comments.", userId, commentId);
-            throw new UnauthorizedAccessException("Only the task owner can delete comments.");
+            this.logger.LogWarning("User {UserId} is not authorized to delete comment {CommentId} created by user {CommentUserId}",
+                userId, commentId, entity.UserId);
+            throw new UnauthorizedAccessException("You can only delete your own comments.");
         }
 
         _ = this.context.Comments.Remove(entity);
         _ = await this.context.SaveChangesAsync();
-        this.logger.LogInformation("Successfully deleted comment {CommentId} by task owner {UserId}", commentId, userId);
+        this.logger.LogInformation("Successfully deleted comment {CommentId} by user {UserId}", commentId, userId);
     }
 }

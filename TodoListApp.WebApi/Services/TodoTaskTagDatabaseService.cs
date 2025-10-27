@@ -10,11 +10,13 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
 {
     private readonly TodoListDbContext context;
     private readonly ILogger<TodoTaskTagDatabaseService> logger;
+    private readonly IPermissionService permissionService;
 
-    public TodoTaskTagDatabaseService(TodoListDbContext context, ILogger<TodoTaskTagDatabaseService> logger)
+    public TodoTaskTagDatabaseService(TodoListDbContext context, ILogger<TodoTaskTagDatabaseService> logger, IPermissionService permissionService)
     {
         this.context = context;
         this.logger = logger;
+        this.permissionService = permissionService;
     }
 
     // ---------------- Add Tag ----------------
@@ -22,12 +24,17 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
     {
         this.logger.LogInformation("Adding tag '{TagName}' to task {TaskId} for user {UserId}", tagName, taskId, userId);
 
+        if (!await permissionService.CanManageTagsAsync(taskId, userId))
+        {
+            this.logger.LogWarning("User {UserId} does not have permission to add tags to task {TaskId}", userId, taskId);
+            throw new UnauthorizedAccessException("You do not have permission to add tags to this task.");
+        }
+
+        // SIMPLIFIED: Just get the task (no need for complex include/where)
         var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
-            .Include(t => t.TodoList)
-            .FirstOrDefaultAsync(t => t.Id == taskId &&
-                                      (t.TodoList.OwnerId == userId || t.AssignedUserId == userId));
+            .FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null)
         {
@@ -69,22 +76,22 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
     {
         this.logger.LogInformation("Removing tag '{TagName}' from task {TaskId} for user {UserId}", tagName, taskId, userId);
 
+        if (!await permissionService.CanManageTagsAsync(taskId, userId))
+        {
+            this.logger.LogWarning("User {UserId} does not have permission to remove tags from task {TaskId}", userId, taskId);
+            throw new UnauthorizedAccessException("You do not have permission to remove tags from this task.");
+        }
+
+        // SIMPLIFIED: Just get the task
         var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
-            .Include(t => t.TodoList)
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null)
         {
             this.logger.LogWarning("Task {TaskId} not found", taskId);
             throw new KeyNotFoundException($"Task {taskId} not found.");
-        }
-
-        if (task.TodoList.OwnerId != userId && task.AssignedUserId != userId)
-        {
-            this.logger.LogWarning("User {UserId} not authorized to remove tags from task {TaskId}", userId, taskId);
-            throw new UnauthorizedAccessException("You cannot remove tags from this task.");
         }
 
         var taskTag = task.TaskTags.FirstOrDefault(tt => tt.Tag.Name == tagName);
@@ -105,12 +112,17 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
     {
         this.logger.LogInformation("Getting task {TaskId} with tags for user {UserId}", taskId, userId);
 
+        if (!await permissionService.CanViewTaskAsync(taskId, userId))
+        {
+            this.logger.LogWarning("User {UserId} does not have access to task {TaskId}", userId, taskId);
+            throw new UnauthorizedAccessException("You do not have access to this task.");
+        }
+
+        // SIMPLIFIED: Just get the task
         var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
-            .Include(t => t.TodoList)
-            .FirstOrDefaultAsync(t => t.Id == taskId &&
-                                      (t.TodoList.OwnerId == userId || t.AssignedUserId == userId));
+            .FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null)
         {
@@ -137,10 +149,19 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
     {
         logger.LogInformation("Getting all tags for user {UserId}", userId);
 
+        var accessibleListIds = await context.TodoLists
+            .Where(tl => tl.OwnerId == userId)
+            .Select(tl => tl.Id)
+            .Union(
+                context.Set<TodoListUser>()
+                    .Where(tlu => tlu.UserId == userId)
+                    .Select(tlu => tlu.TodoListId)
+            )
+            .ToListAsync();
+
         var tags = await this.context.TodoTaskTags
             .Include(tt => tt.TodoTask)
-            .ThenInclude(t => t.TodoList)
-            .Where(tt => tt.TodoTask.TodoList.OwnerId == userId || tt.TodoTask.AssignedUserId == userId)
+            .Where(tt => accessibleListIds.Contains(tt.TodoTask.TodoListId) || tt.TodoTask.AssignedUserId == userId)
             .Select(tt => tt.Tag.Name)
             .Distinct()
             .ToListAsync();
@@ -154,11 +175,20 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
     {
         logger.LogInformation("Getting tasks with tag '{TagName}' for user {UserId}", tagName, userId);
 
+        var accessibleListIds = await context.TodoLists
+            .Where(tl => tl.OwnerId == userId)
+            .Select(tl => tl.Id)
+            .Union(
+                context.Set<TodoListUser>()
+                    .Where(tlu => tlu.UserId == userId)
+                    .Select(tlu => tlu.TodoListId)
+            )
+            .ToListAsync();
+
         var tasks = await this.context.TodoTaskTags
             .Include(tt => tt.TodoTask)
-            .ThenInclude(t => t.TodoList)
             .Where(tt => tt.Tag.Name == tagName &&
-                         (tt.TodoTask.TodoList.OwnerId == userId || tt.TodoTask.AssignedUserId == userId))
+                         (accessibleListIds.Contains(tt.TodoTask.TodoListId) || tt.TodoTask.AssignedUserId == userId))
             .Select(tt => tt.TodoTask)
             .ToListAsync();
 
@@ -179,11 +209,17 @@ public class TodoTaskTagDatabaseService : ITodoTaskTagDatabaseService
     {
         logger.LogInformation("Getting tags for task {TaskId} for user {UserId}", taskId, userId);
 
+        if (!await permissionService.CanViewTaskAsync(taskId, userId))
+        {
+            logger.LogWarning("User {UserId} does not have access to task {TaskId}", userId, taskId);
+            throw new UnauthorizedAccessException("You do not have access to this task.");
+        }
+
+        // SIMPLIFIED: Just get the task
         var task = await this.context.TodoTasks
             .Include(t => t.TaskTags)
             .ThenInclude(tt => tt.Tag)
-            .FirstOrDefaultAsync(t => t.Id == taskId &&
-                                      (t.TodoList.OwnerId == userId || t.AssignedUserId == userId));
+            .FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null)
         {

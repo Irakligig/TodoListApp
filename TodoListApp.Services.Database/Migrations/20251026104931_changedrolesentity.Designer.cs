@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TodoListApp.Services.Database;
 
@@ -11,9 +12,10 @@ using TodoListApp.Services.Database;
 namespace TodoListApp.Services.Database.Migrations
 {
     [DbContext(typeof(TodoListDbContext))]
-    partial class TodoListDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251026104931_changedrolesentity")]
+    partial class changedrolesentity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -85,7 +87,7 @@ namespace TodoListApp.Services.Database.Migrations
                     b.ToTable("TodoLists");
                 });
 
-            modelBuilder.Entity("TodoListApp.Services.Database.Entities.TodoListUser", b =>
+            modelBuilder.Entity("TodoListApp.Services.Database.Entities.TodoListUserRoleEntity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -95,21 +97,22 @@ namespace TodoListApp.Services.Database.Migrations
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TodoListId")
                         .HasColumnType("int");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("TodoListId");
 
-                    b.ToTable("TodoListUser");
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TodoListUserRoles");
                 });
 
             modelBuilder.Entity("TodoListApp.Services.Database.Entities.TodoTagEntity", b =>
@@ -184,13 +187,79 @@ namespace TodoListApp.Services.Database.Migrations
                     b.ToTable("TodoTaskTags");
                 });
 
-            modelBuilder.Entity("TodoListApp.Services.Database.Entities.TodoListUser", b =>
+            modelBuilder.Entity("TodoListApp.Services.Database.Entities.User", b =>
                 {
-                    b.HasOne("TodoListApp.Services.Database.Entities.TodoListEntity", null)
-                        .WithMany()
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("FullName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("User");
+                });
+
+            modelBuilder.Entity("TodoListApp.Services.Database.Entities.TodoListUserRoleEntity", b =>
+                {
+                    b.HasOne("TodoListApp.Services.Database.Entities.TodoListEntity", "TodoList")
+                        .WithMany("UserRoles")
                         .HasForeignKey("TodoListId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("TodoListApp.Services.Database.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TodoList");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TodoListApp.Services.Database.Entities.TodoTaskEntity", b =>
@@ -226,6 +295,8 @@ namespace TodoListApp.Services.Database.Migrations
             modelBuilder.Entity("TodoListApp.Services.Database.Entities.TodoListEntity", b =>
                 {
                     b.Navigation("TodoItems");
+
+                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("TodoListApp.Services.Database.Entities.TodoTagEntity", b =>

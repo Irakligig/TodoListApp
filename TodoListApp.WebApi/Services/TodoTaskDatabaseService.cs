@@ -9,11 +9,13 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
 {
     private readonly TodoListDbContext context;
     private readonly ILogger<TodoTaskDatabaseService> logger;
+    private readonly IPermissionService permissionService;
 
-    public TodoTaskDatabaseService(TodoListDbContext context, ILogger<TodoTaskDatabaseService> logger)
+    public TodoTaskDatabaseService(TodoListDbContext context, ILogger<TodoTaskDatabaseService> logger, IPermissionService permissionService)
     {
         this.context = context;
         this.logger = logger;
+        this.permissionService = permissionService;
     }
 
     public async Task<IEnumerable<TodoTask>> GetAllTasksAsync(int todoListId, string ownerId)
@@ -28,7 +30,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             throw new KeyNotFoundException($"Todo list with Id {todoListId} not found.");
         }
 
-        if (!string.Equals(list.OwnerId, ownerId, StringComparison.OrdinalIgnoreCase))
+        if (!await permissionService.CanViewTodoListAsync(todoListId, ownerId))
         {
             this.logger.LogWarning("User {OwnerId} does not have access to todo list {TodoListId}", ownerId, todoListId);
             throw new UnauthorizedAccessException("You do not have access to this todo list.");
@@ -68,7 +70,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             return null;
         }
 
-        if (task.TodoList.OwnerId != ownerId && task.AssignedUserId != ownerId)
+        if (!await this.permissionService.CanViewTaskAsync(taskId, ownerId))
         {
             this.logger.LogWarning("User {OwnerId} does not have access to task {TaskId}", ownerId, taskId);
             throw new UnauthorizedAccessException("You do not have access to this task.");
@@ -100,7 +102,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             throw new KeyNotFoundException($"Todo list with Id {task.TodoListId} not found.");
         }
 
-        if (list.OwnerId != ownerId)
+        if (!await permissionService.CanManageTasksAsync(task.TodoListId,ownerId))
         {
             this.logger.LogWarning("User {OwnerId} does not have access to add tasks to list {TodoListId}", ownerId, task.TodoListId);
             throw new UnauthorizedAccessException("You do not have access to add tasks to this list.");
@@ -137,7 +139,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             throw new KeyNotFoundException($"Task with Id {task.Id} not found.");
         }
 
-        if (entity.TodoList.OwnerId != ownerId)
+        if (!await permissionService.CanEditTaskAsync(task.Id, ownerId))
         {
             this.logger.LogWarning("User {OwnerId} does not have access to update task {TaskId}", ownerId, task.Id);
             throw new UnauthorizedAccessException("You do not have access to update this task.");
@@ -166,7 +168,7 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             throw new KeyNotFoundException($"Task with Id {taskId} not found.");
         }
 
-        if (entity.TodoList.OwnerId != ownerId)
+        if (!await permissionService.CanDeleteTaskAsync(taskId, ownerId))
         {
             this.logger.LogWarning("User {OwnerId} does not have access to delete task {TaskId}", ownerId, taskId);
             throw new UnauthorizedAccessException("You do not have access to delete this task.");
@@ -297,13 +299,14 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             throw new KeyNotFoundException($"Task {taskId} not found.");
         }
 
-        if (task.AssignedUserId != currentUserId)
+        bool canReassign = task.AssignedUserId == currentUserId ||
+                      await this.permissionService.CanManageTasksAsync(task.TodoListId, currentUserId);
+
+        if (!canReassign)
         {
             this.logger.LogWarning("User {CurrentUserId} is not allowed to reassign task {TaskId}", currentUserId, taskId);
             throw new UnauthorizedAccessException("You are not allowed to reassign this task.");
         }
-
-        // With Identity, we assume newUserId exists. Optional: validate via UserManager
 
         task.AssignedUserId = newUserId;
         _ = await this.context.SaveChangesAsync();
@@ -321,8 +324,20 @@ public class TodoTaskDatabaseService : ITodoTaskDatabaseService
             throw new ArgumentException("User ID is required.", nameof(userId));
         }
 
-        var tasks = this.context.TodoTasks.Include(t => t.TodoList)
-            .Where(t => t.TodoList.OwnerId == userId || t.AssignedUserId == userId);
+        var accessibleListIds = await this.context.TodoLists
+        .Where(tl => tl.OwnerId == userId)
+        .Select(tl => tl.Id)
+        .Union(
+            this.context.Set<TodoListUser>()
+                .Where(tlu => tlu.UserId == userId)
+                .Select(tlu => tlu.TodoListId)
+        )
+        .ToListAsync();
+
+        // NEW QUERY: Search in accessible lists OR tasks assigned to user
+        var tasks = this.context.TodoTasks
+            .Include(t => t.TodoList)
+            .Where(t => accessibleListIds.Contains(t.TodoListId) || t.AssignedUserId == userId);
 
         if (!string.IsNullOrWhiteSpace(query))
         {

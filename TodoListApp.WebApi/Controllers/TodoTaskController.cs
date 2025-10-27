@@ -114,7 +114,7 @@ namespace TodoListApp.WebApi.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return this.Forbid(ex.Message);
+                return this.StatusCode(403, ex.Message);
             }
         }
 
@@ -150,7 +150,7 @@ namespace TodoListApp.WebApi.Controllers
             }
             catch (UnauthorizedAccessException)
             {
-                return this.Forbid();
+                return this.StatusCode(403);
             }
         }
 
@@ -171,7 +171,7 @@ namespace TodoListApp.WebApi.Controllers
             }
             catch (UnauthorizedAccessException)
             {
-                return this.Forbid();
+                return this.StatusCode(403);
             }
         }
 
@@ -252,7 +252,7 @@ namespace TodoListApp.WebApi.Controllers
             }
             catch (UnauthorizedAccessException)
             {
-                return this.Forbid();
+                return this.StatusCode(403);
             }
         }
 
