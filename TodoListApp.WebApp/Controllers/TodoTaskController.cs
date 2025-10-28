@@ -384,7 +384,7 @@ namespace TodoListApp.WebApp.Controllers
                 throw;
             }
 
-            return RedirectToAction("Index");
+            return this.RedirectToAction("AssignedTasks");
         }
 
         // GET: /TodoTask/Details/1046?listId=37

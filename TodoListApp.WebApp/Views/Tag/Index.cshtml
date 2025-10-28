@@ -1,48 +1,240 @@
 @model IEnumerable<string>
+@{
+    ViewData["Title"] = "All Tags";
+}
 
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h3 class="card-title mb-0">
-                        <i class="fas fa-tags me-2 text-primary"></i>
-                        All Tags
-                    </h3>
-                </div>
+<div class="container mt-3">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Success!</strong> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Error!</strong> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+</div>
+
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 text-gradient mb-1">My Tags</h1>
+            <p class="text-muted">Organize and filter your tasks using tags</p>
+        </div>
+        <div class="badge bg-primary-gradient fs-6 p-3 rounded-pill">
+            <i class="fas fa-tags me-2"></i>
+            @Model.Count() Tags
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card stats-card border-start-4 border-start-primary">
                 <div class="card-body">
-                    <div class="d-flex flex-wrap gap-2">
-                        @foreach (var tag in Model)
-                        {
-                            <a asp-action="TasksByTag" asp-route-tagName="@tag"
-                               class="btn btn-outline-primary position-relative">
-                                <i class="fas fa-tag me-2"></i>
-                                @tag
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-secondary">
-                                    <i class="fas fa-arrow-right"></i>
-                                </span>
-                            </a>
-                        }
-
-                        @if (!Model.Any())
-                        {
-                            <div class="text-center w-100 py-4">
-                                <i class="fas fa-tags fa-2x text-muted mb-3"></i>
-                                <p class="text-muted mb-0">No tags available yet.</p>
-                            </div>
-                        }
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Total Tags</h6>
+                            <h3 class="mb-0">@Model.Count()</h3>
+                        </div>
+                        <div class="stats-icon bg-primary">
+                            <i class="fas fa-tags text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-primary">All Categories</span>
                     </div>
                 </div>
-                @if (Model.Any())
-                {
-                    <div class="card-footer bg-light">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Showing @Model.Count() tags
-                        </small>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card stats-card border-start-4 border-start-success">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Popular Tags</h6>
+                            <h3 class="mb-0">@(Model.Count() > 5 ? "5+" : Model.Count())</h3>
+                        </div>
+                        <div class="stats-icon bg-success">
+                            <i class="fas fa-star text-white"></i>
+                        </div>
                     </div>
-                }
+                    <div class="mt-2">
+                        <span class="badge bg-success">Most Used</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card stats-card border-start-4 border-start-info">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Tagged Tasks</h6>
+                            <h3 class="mb-0">Multiple</h3>
+                        </div>
+                        <div class="stats-icon bg-info">
+                            <i class="fas fa-tasks text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-info">Organized</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Tags Card -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h5 class="card-title mb-0 text-dark">
+                <i class="fas fa-tags me-2 text-primary"></i>All Tags
+            </h5>
+        </div>
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                <div class="row g-3">
+                    @foreach (var tag in Model)
+                    {
+                        <div class="col-xl-3 col-lg-4 col-md-6">
+                            <div class="tag-card card border-0 shadow-sm h-100">
+                                <div class="card-body text-center p-4">
+                                    <div class="tag-icon mb-3">
+                                        <i class="fas fa-tag fa-2x text-primary"></i>
+                                    </div>
+                                    <h6 class="tag-name fw-semibold mb-3">@tag</h6>
+                                    <a asp-action="TasksByTag" asp-route-tagName="@tag"
+                                       class="btn btn-primary btn-sm w-100">
+                                        <i class="fas fa-eye me-1"></i>View Tasks
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-tags fa-4x text-muted mb-4"></i>
+                    <h4 class="text-muted mb-3">No Tags Yet</h4>
+                    <p class="text-muted mb-4">Start organizing your tasks by adding tags to them.</p>
+                    <a asp-controller="TodoList" asp-action="Index" class="btn btn-primary">
+                        <i class="fas fa-rocket me-2"></i>Go to Tasks
+                    </a>
+                </div>
+            }
+        </div>
+        @if (Model.Any())
+        {
+            <div class="card-footer bg-light py-3">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Showing @Model.Count() tags - Click any tag to view associated tasks
+                        </small>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <small class="text-muted">
+                            <i class="fas fa-lightbulb me-1"></i>
+                            Use tags to categorize and filter your tasks efficiently
+                        </small>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
 </div>
+
+<style>
+    .stats-card {
+        transition: all 0.3s ease;
+        border-left-width: 4px !important;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .stats-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .border-start-4 {
+        border-left-width: 4px !important;
+    }
+
+    .border-start-primary { border-left-color: #4f46e5 !important; }
+    .border-start-success { border-left-color: #10b981 !important; }
+    .border-start-info { border-left-color: #06b6d4 !important; }
+
+    .text-gradient {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .bg-primary-gradient {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+    }
+
+    .tag-card {
+        transition: all 0.3s ease;
+        border: 1px solid #e5e7eb;
+    }
+
+    .tag-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.15) !important;
+        border-color: #4f46e5;
+    }
+
+    .tag-icon {
+        transition: transform 0.3s ease;
+    }
+
+    .tag-card:hover .tag-icon {
+        transform: scale(1.1);
+    }
+
+    .tag-name {
+        color: #374151;
+        font-size: 1.1rem;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add click animation to tag cards
+        const tagCards = document.querySelectorAll('.tag-card');
+        tagCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (e.target.tagName !== 'A' && !e.target.closest('a')) {
+                    const link = this.querySelector('a');
+                    if (link) {
+                        link.click();
+                    }
+                }
+            });
+        });
+    });
+</script>

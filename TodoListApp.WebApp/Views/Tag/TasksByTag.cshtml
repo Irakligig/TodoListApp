@@ -1,13 +1,14 @@
 @model IEnumerable<TodoListApp.WebApi.Models.TodoTaskModel>
 @{
     ViewData["Title"] = $"Tasks tagged with '{ViewBag.TagName}'";
+    var tagName = ViewBag.TagName as string;
 }
 
-<!-- ADD ALERT SECTION -->
 <div class="container mt-3">
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
             <strong>Success!</strong> @TempData["SuccessMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -16,53 +17,213 @@
     @if (TempData["ErrorMessage"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
             <strong>Error!</strong> @TempData["ErrorMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 </div>
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>@ViewData["Title"]</h2>
-        <a asp-controller="Tag" asp-action="AllTags" class="btn btn-secondary">← Back to Tags</a>
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 text-gradient mb-1">
+                <i class="fas fa-tag me-2"></i>@tagName
+            </h1>
+            <p class="text-muted">Tasks filtered by tag</p>
+        </div>
+        <div class="badge bg-primary-gradient fs-6 p-3 rounded-pill">
+            <i class="fas fa-tasks me-2"></i>
+            @Model.Count() Tasks
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card border-start-4 border-start-primary">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Total Tasks</h6>
+                            <h3 class="mb-0">@Model.Count()</h3>
+                        </div>
+                        <div class="stats-icon bg-primary">
+                            <i class="fas fa-tasks text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-primary">With "@tagName"</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card border-start-4 border-start-warning">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Pending</h6>
+                            <h3 class="mb-0">@Model.Count(t => !t.IsCompleted)</h3>
+                        </div>
+                        <div class="stats-icon bg-warning">
+                            <i class="fas fa-clock text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-warning text-dark">To Do</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card border-start-4 border-start-success">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Completed</h6>
+                            <h3 class="mb-0">@Model.Count(t => t.IsCompleted)</h3>
+                        </div>
+                        <div class="stats-icon bg-success">
+                            <i class="fas fa-check-circle text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-success">Done</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stats-card border-start-4 border-start-danger">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Overdue</h6>
+                            <h3 class="mb-0">@Model.Count(t => t.DueDate.HasValue && t.DueDate.Value < DateTime.Now && !t.IsCompleted)</h3>
+                        </div>
+                        <div class="stats-icon bg-danger">
+                            <i class="fas fa-exclamation-triangle text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-danger">Attention Needed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a asp-controller="Tag" asp-action="AllTags" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to All Tags
+        </a>
+        <div class="text-muted">
+            <i class="fas fa-filter me-1"></i>Filtered by tag: <strong>"@tagName"</strong>
+        </div>
     </div>
 
     @if (Model != null && Model.Any())
     {
         <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0 text-dark">
+                    <i class="fas fa-list-check me-2 text-primary"></i>Tagged Tasks
+                </h5>
+            </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover align-middle">
-                        <thead class="table-dark">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th>Title</th>
+                                <th class="ps-4">Task</th>
                                 <th>Description</th>
                                 <th>Due Date</th>
                                 <th>Status</th>
-                                <th>Actions</th>
+                                <th class="pe-4">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var task in Model)
                             {
-                                <tr>
-                                    <td>@task.Name</td>
-                                    <td>@(string.IsNullOrEmpty(task.Description) ? "No description" : task.Description)</td>
-                                    <td>@(task.DueDate?.ToString("yyyy-MM-dd") ?? "No due date")</td>
+                                var isOverdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
+                                var dueSoon = task.DueDate.HasValue && task.DueDate.Value > DateTime.Now && task.DueDate.Value <= DateTime.Now.AddDays(3) && !task.IsCompleted;
+
+                                <tr class="@(isOverdue ? "table-warning" : dueSoon ? "table-info" : "")">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                @if (task.IsCompleted)
+                                                {
+                                                    <i class="fas fa-check-circle text-success fs-5"></i>
+                                                }
+                                                else if (isOverdue)
+                                                {
+                                                    <i class="fas fa-exclamation-circle text-warning fs-5"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-clock text-secondary fs-5"></i>
+                                                }
+                                            </div>
+                                            <div>
+                                                <span class="fw-semibold">@task.Name</span>
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td>
-                                        @if (task.IsCompleted)
+                                        <span class="text-muted">@(string.IsNullOrEmpty(task.Description) ? "No description" : task.Description)</span>
+                                    </td>
+                                    <td>
+                                        @if (task.DueDate.HasValue)
                                         {
-                                            <span class="badge bg-success">Completed</span>
+                                            <div class="d-flex flex-column">
+                                                <span class="fw-semibold @(isOverdue ? "text-danger" : dueSoon ? "text-info" : "text-dark")">
+                                                    @task.DueDate.Value.ToString("MMM dd, yyyy")
+                                                </span>
+                                                <small class="text-muted">
+                                                    @task.DueDate.Value.ToString("hh:mm tt")
+                                                </small>
+                                            </div>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-warning text-dark">Pending</span>
+                                            <span class="text-muted">No due date</span>
                                         }
                                     </td>
                                     <td>
+                                        @if (task.IsCompleted)
+                                        {
+                                            <span class="badge bg-success rounded-pill">
+                                                <i class="fas fa-check me-1"></i>Completed
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark rounded-pill">
+                                                <i class="fas fa-clock me-1"></i>Pending
+                                            </span>
+                                        }
+                                        @if (isOverdue)
+                                        {
+                                            <span class="badge bg-danger rounded-pill mt-1">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>Overdue
+                                            </span>
+                                        }
+                                        else if (dueSoon)
+                                        {
+                                            <span class="badge bg-info rounded-pill mt-1">
+                                                <i class="fas fa-hourglass-half me-1"></i>Due Soon
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="pe-4">
                                         <a asp-controller="TodoTask" asp-action="Details" asp-route-listId="@task.TodoListId" asp-route-id="@task.Id"
-                                           class="btn btn-sm btn-outline-primary">View Details</a>
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>View Details
+                                        </a>
                                     </td>
                                 </tr>
                             }
@@ -74,11 +235,65 @@
     }
     else
     {
-        <div class="text-center py-5">
-            <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
-            <h4 class="text-muted">No tasks found with this tag</h4>
-            <p class="text-muted">Try selecting a different tag or create new tasks with this tag.</p>
-            <a asp-controller="Tag" asp-action="AllTags" class="btn btn-primary">Browse All Tags</a>
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-tasks fa-4x text-muted mb-4"></i>
+                <h4 class="text-muted mb-3">No Tasks Found</h4>
+                <p class="text-muted mb-4">No tasks are tagged with "<strong>@tagName</strong>" yet.</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <a asp-controller="Tag" asp-action="AllTags" class="btn btn-primary">
+                        <i class="fas fa-tags me-2"></i>Browse All Tags
+                    </a>
+                    <a asp-controller="TodoList" asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-2"></i>View All Tasks
+                    </a>
+                </div>
+            </div>
         </div>
     }
 </div>
+
+<style>
+    .stats-card {
+        transition: all 0.3s ease;
+        border-left-width: 4px !important;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .stats-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .border-start-4 {
+        border-left-width: 4px !important;
+    }
+
+    .border-start-primary { border-left-color: #4f46e5 !important; }
+    .border-start-warning { border-left-color: #f59e0b !important; }
+    .border-start-success { border-left-color: #10b981 !important; }
+    .border-start-danger { border-left-color: #ef4444 !important; }
+
+    .text-gradient {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .bg-primary-gradient {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(79, 70, 229, 0.05);
+    }
+</style>

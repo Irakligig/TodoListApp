@@ -24,6 +24,7 @@
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
             <strong>Success!</strong> @TempData["SuccessMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -32,6 +33,7 @@
     @if (TempData["ErrorMessage"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
             <strong>Error!</strong> @TempData["ErrorMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -44,19 +46,19 @@
             <!-- Header Section -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h1 class="h2 text-primary mb-1">Assigned Tasks</h1>
+                    <h1 class="h2 text-gradient mb-1">Assigned Tasks</h1>
                     <p class="text-muted">Manage and track your assigned tasks efficiently</p>
                 </div>
-                <div class="badge bg-primary fs-6 p-3">
+                <div class="badge bg-primary-gradient fs-6 p-3 rounded-pill">
                     <i class="fas fa-tasks me-2"></i>
                     @totalTasks Tasks
                 </div>
             </div>
 
-            <!-- Stats Cards - Improved Design -->
+            <!-- Stats Cards -->
             <div class="row mb-4">
                 <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card stats-card border-start-4 border-start-primary hover-lift">
+                    <div class="card stats-card border-start-4 border-start-primary">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div class="flex-grow-1">
@@ -74,7 +76,7 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card stats-card border-start-4 border-start-warning hover-lift">
+                    <div class="card stats-card border-start-4 border-start-warning">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div class="flex-grow-1">
@@ -92,7 +94,7 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card stats-card border-start-4 border-start-danger hover-lift">
+                    <div class="card stats-card border-start-4 border-start-danger">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div class="flex-grow-1">
@@ -110,7 +112,7 @@
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card stats-card border-start-4 border-start-success hover-lift">
+                    <div class="card stats-card border-start-4 border-start-success">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div class="flex-grow-1">
@@ -132,7 +134,7 @@
             <!-- Filter Card -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-light py-3">
-                    <h5 class="card-title mb-0">
+                    <h5 class="card-title mb-0 text-dark">
                         <i class="fas fa-filter me-2 text-primary"></i>Filter & Sort Tasks
                     </h5>
                 </div>
@@ -214,7 +216,6 @@
                                                     }
                                                 </div>
                                                 <div>
-                                                    <!-- Removed clickable link from task name -->
                                                     <span class="fw-semibold text-dark">@task.Name</span>
                                                     @if (!string.IsNullOrEmpty(task.Description))
                                                     {
@@ -226,7 +227,7 @@
 
                                         <!-- Status Column -->
                                         <td>
-                                            <span class="badge @(task.IsCompleted ? "bg-success" : "bg-warning") fs-7">
+                                            <span class="badge @(task.IsCompleted ? "bg-success" : "bg-warning") rounded-pill">
                                                 @if (task.IsCompleted)
                                                 {
                                                     <i class="fas fa-check me-1"></i>
@@ -239,13 +240,13 @@
                                             </span>
                                             @if (overdue)
                                             {
-                                                <span class="badge bg-danger fs-7 mt-1">
+                                                <span class="badge bg-danger rounded-pill mt-1">
                                                     <i class="fas fa-exclamation-triangle me-1"></i>Overdue
                                                 </span>
                                             }
                                             else if (dueSoon)
                                             {
-                                                <span class="badge bg-info fs-7 mt-1">
+                                                <span class="badge bg-info rounded-pill mt-1">
                                                     <i class="fas fa-hourglass-half me-1"></i>Due Soon
                                                 </span>
                                             }
@@ -316,7 +317,6 @@
                                                     </form>
                                                 }
 
-                                                <!-- View Details Button - Now the only way to see details -->
                                                 <a asp-controller="TodoTask"
                                                    asp-action="Details"
                                                    asp-route-listId="@task.TodoListId"
@@ -327,13 +327,13 @@
                                             </div>
                                         </td>
 
-                                        <!-- Reassign Column - Fixed to show properly -->
+                                        <!-- Reassign Column -->
                                         <td class="pe-4">
                                             @if (users.Any())
                                             {
                                                 <form asp-action="ReassignTask" method="post" class="reassign-form">
                                                     <input type="hidden" name="taskId" value="@task.Id" />
-                                                    <div class="input-group input-group-sm">
+                                                    <div class="d-flex gap-1 align-items-center">
                                                         <select name="newUserId" class="form-select form-select-sm reassign-select">
                                                             <option value="">Select User</option>
                                                             @foreach (var user in users)
@@ -341,7 +341,7 @@
                                                                 <option value="@user.Id" selected="@(user.Id == task.AssignedUserId)">@user.FullName</option>
                                                             }
                                                         </select>
-                                                        <button type="submit" class="btn btn-info btn-sm" title="Reassign Task" @(task.AssignedUserId == null ? "disabled" : "")>
+                                                        <button type="submit" class="btn btn-info btn-sm reassign-btn" title="Reassign Task" @(task.AssignedUserId == null ? "disabled" : "")>
                                                             <i class="fas fa-user-plus"></i>
                                                         </button>
                                                     </div>
@@ -391,31 +391,6 @@
         font-size: 14px;
     }
 
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 123, 255, 0.05);
-    }
-
-    .reassign-select {
-        min-width: 120px;
-    }
-
-    .card {
-        border: none;
-        border-radius: 12px;
-    }
-
-    .badge.fs-7 {
-        font-size: 0.75rem;
-    }
-
-    .task-description {
-        max-width: 200px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    /* Stats Card Styles */
     .stats-card {
         transition: all 0.3s ease;
         border-left-width: 4px !important;
@@ -441,50 +416,49 @@
     }
 
     .border-start-primary {
-        border-left-color: #007bff !important;
+        border-left-color: #4f46e5 !important;
     }
 
     .border-start-warning {
-        border-left-color: #ffc107 !important;
+        border-left-color: #f59e0b !important;
     }
 
     .border-start-danger {
-        border-left-color: #dc3545 !important;
+        border-left-color: #ef4444 !important;
     }
 
     .border-start-success {
-        border-left-color: #28a745 !important;
+        border-left-color: #10b981 !important;
     }
 
-    .hover-lift:hover {
-        transform: translateY(-3px);
-        transition: all 0.3s ease;
+    .text-gradient {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .bg-primary-gradient {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+    }
+
+    .reassign-select {
+        min-width: 140px;
+        width: 100%;
+    }
+
+    .reassign-btn {
+        min-width: 40px;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(79, 70, 229, 0.05);
     }
 </style>
 
 <script>
-    // Add smooth animations and confirmations
     document.addEventListener('DOMContentLoaded', function () {
-        // Add confirmation for reassignment
-        const reassignForms = document.querySelectorAll('.reassign-form');
-        reassignForms.forEach(form => {
-            form.addEventListener('submit', function (e) {
-                const select = this.querySelector('.reassign-select');
-                const selectedUserId = select.value;
-                const selectedUser = select.options[select.selectedIndex].text;
-
-                if (!selectedUserId) {
-                    alert('Please select a user to reassign the task to.');
-                    e.preventDefault();
-                    return;
-                }
-
-                if (!confirm(`Are you sure you want to reassign this task to ${selectedUser}?`)) {
-                    e.preventDefault();
-                }
-            });
-        });
-
         // Add status update confirmation
         const statusForms = document.querySelectorAll('form[action*="UpdateStatus"]');
         statusForms.forEach(form => {
@@ -497,14 +471,18 @@
             });
         });
 
-        // Add hover effects to stats cards
-        const statsCards = document.querySelectorAll('.stats-card');
-        statsCards.forEach(card => {
-            card.addEventListener('mouseenter', function () {
-                this.style.transform = 'translateY(-5px)';
-            });
-            card.addEventListener('mouseleave', function () {
-                this.style.transform = 'translateY(0)';
+        // Reassign form validation
+        const reassignForms = document.querySelectorAll('.reassign-form');
+        reassignForms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const select = this.querySelector('.reassign-select');
+                const selectedUserId = select.value;
+
+                if (!selectedUserId) {
+                    alert('Please select a user to reassign the task to.');
+                    e.preventDefault();
+                    return;
+                }
             });
         });
     });

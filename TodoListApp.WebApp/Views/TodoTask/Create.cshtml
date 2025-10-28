@@ -3,11 +3,11 @@
     ViewData["Title"] = "Create Task";
 }
 
-<!-- ADD ALERT SECTION -->
 <div class="container mt-3">
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
             <strong>Success!</strong> @TempData["SuccessMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -16,55 +16,75 @@
     @if (TempData["ErrorMessage"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
             <strong>Error!</strong> @TempData["ErrorMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 </div>
 
-<h2>Create Task</h2>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Task
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Create" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="TodoListId" />
 
-<form asp-action="Create" method="post">
-    @* Anti-forgery token is required because controller uses [ValidateAntiForgeryToken] *@
-    @Html.AntiForgeryToken()
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Name" class="form-label fw-semibold">Task Title</label>
+                                    <input asp-for="Name" class="form-control" placeholder="Enter task title" />
+                                    <span asp-validation-for="Name" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="DueDate" class="form-label fw-semibold">Due Date</label>
+                                    <input asp-for="DueDate" type="date" class="form-control" />
+                                    <span asp-validation-for="DueDate" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
 
-    <input type="hidden" asp-for="TodoListId" />
+                        <div class="form-group mb-3">
+                            <label asp-for="Description" class="form-label fw-semibold">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Enter task description"></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
 
-    <div class="form-group">
-        <label asp-for="Name"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
+                        <div class="form-group mb-4">
+                            <label asp-for="IsCompleted" class="form-label fw-semibold">Status</label>
+                            <select asp-for="IsCompleted" class="form-control">
+                                <option value="false">Pending</option>
+                                <option value="true">Completed</option>
+                            </select>
+                            <span asp-validation-for="IsCompleted" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-save me-2"></i>Create Task
+                            </button>
+                            <a asp-action="Index" asp-route-listId="@Model.TodoListId" class="btn btn-outline-secondary px-4">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div class="form-group">
-        <label asp-for="Description"></label>
-        <textarea asp-for="Description" class="form-control"></textarea>
-        <span asp-validation-for="Description" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="DueDate"></label>
-        <input asp-for="DueDate" class="form-control" type="date" />
-        <span asp-validation-for="DueDate" class="text-danger"></span>
-    </div>
-
-
-    <div class="form-group">
-        <label asp-for="IsCompleted"></label>
-        @* Use actual boolean values for option values so model binder can parse them *@
-        <select asp-for="IsCompleted" class="form-control">
-            <option value="false">Pending</option>
-            <option value="true">Completed</option>
-        </select>
-        <span asp-validation-for="IsCompleted" class="text-danger"></span>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Create</button>
-    <a asp-action="Index" asp-route-listId="@Model.TodoListId" class="btn btn-secondary">Cancel</a>
-</form>
+</div>
 
 @section Scripts {
-    @* Client-side validation helpers if you have them enabled *@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }

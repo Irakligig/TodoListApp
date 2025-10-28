@@ -4,11 +4,11 @@
     var users = ViewBag.Users as List<TodoListApp.WebApi.Models.TodoUserModel> ?? new();
 }
 
-<!-- ADD ALERT SECTION -->
 <div class="container mt-3">
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
             <strong>Success!</strong> @TempData["SuccessMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -17,22 +17,23 @@
     @if (TempData["ErrorMessage"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
             <strong>Error!</strong> @TempData["ErrorMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 </div>
 
-<div class="container mt-4">
+<div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary text-white py-3">
                     <h4 class="mb-0">
                         <i class="fas fa-edit me-2"></i>Edit Task
                     </h4>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <!-- Main Task Edit Form -->
                     <form asp-action="Edit" method="post">
                         @Html.AntiForgeryToken()
@@ -45,14 +46,14 @@
                                 <div class="form-group mb-3">
                                     <label asp-for="Name" class="form-label fw-semibold">Task Title</label>
                                     <input asp-for="Name" class="form-control" />
-                                    <span asp-validation-for="Name" class="text-danger"></span>
+                                    <span asp-validation-for="Name" class="text-danger small"></span>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label asp-for="DueDate" class="form-label fw-semibold">Due Date</label>
                                     <input asp-for="DueDate" type="date" class="form-control" />
-                                    <span asp-validation-for="DueDate" class="text-danger"></span>
+                                    <span asp-validation-for="DueDate" class="text-danger small"></span>
                                 </div>
                             </div>
                         </div>
@@ -60,7 +61,7 @@
                         <div class="form-group mb-3">
                             <label asp-for="Description" class="form-label fw-semibold">Description</label>
                             <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-                            <span asp-validation-for="Description" class="text-danger"></span>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
                         </div>
 
                         <div class="row">
@@ -83,7 +84,7 @@
                                             <option value="@user.Id">@user.FullName</option>
                                         }
                                     </select>
-                                    <span asp-validation-for="AssignedUserId" class="text-danger"></span>
+                                    <span asp-validation-for="AssignedUserId" class="text-danger small"></span>
                                 </div>
                             </div>
                         </div>
@@ -102,7 +103,7 @@
                         </div>
                     </form>
 
-                    <!-- Tags Section - COMPLETELY OUTSIDE the main form -->
+                    <!-- Tags Section -->
                     <div class="mt-4 pt-4 border-top">
                         <div class="form-group">
                             <label class="form-label fw-semibold">Tags</label>
@@ -112,7 +113,7 @@
                                     <div class="d-flex flex-wrap gap-1">
                                         @foreach (var tag in Model.Tags)
                                         {
-                                            <span class="badge bg-secondary text-white">
+                                            <span class="badge bg-secondary text-white rounded-pill">
                                                 @tag
                                                 <form asp-controller="Tag" asp-action="RemoveTag" method="post" style="display:inline">
                                                     <input type="hidden" name="taskId" value="@Model.Id" />

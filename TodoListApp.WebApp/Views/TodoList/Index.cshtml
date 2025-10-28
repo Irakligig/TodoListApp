@@ -9,6 +9,7 @@
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
             <strong>Success!</strong> @TempData["SuccessMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -17,23 +18,95 @@
     @if (TempData["ErrorMessage"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
             <strong>Error!</strong> @TempData["ErrorMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 </div>
 
-<div class="container mt-4">
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 text-gradient mb-1">Todo Lists</h1>
+            <p class="text-muted">Organize your tasks with custom lists and collaborate with others</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Create New List
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card stats-card border-start-4 border-start-primary">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">My Lists</h6>
+                            <h3 class="mb-0">@Model.Count()</h3>
+                        </div>
+                        <div class="stats-icon bg-primary">
+                            <i class="fas fa-list text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-primary">Personal Lists</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card stats-card border-start-4 border-start-success">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Shared Lists</h6>
+                            <h3 class="mb-0">@sharedLists.Count()</h3>
+                        </div>
+                        <div class="stats-icon bg-success">
+                            <i class="fas fa-share-alt text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-success">Collaborative</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card stats-card border-start-4 border-start-info">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-muted mb-1">Available Users</h6>
+                            <h3 class="mb-0">@availableUsers.Count()</h3>
+                        </div>
+                        <div class="stats-icon bg-info">
+                            <i class="fas fa-users text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-info">For Sharing</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tabs for My Lists vs Shared With Me -->
     <ul class="nav nav-tabs mb-4" id="listsTab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="my-lists-tab" data-bs-toggle="tab" data-bs-target="#my-lists" type="button" role="tab">
-                My Lists
+                <i class="fas fa-list-check me-2"></i>My Lists
+                <span class="badge bg-primary ms-2">@Model.Count()</span>
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="shared-tab" data-bs-toggle="tab" data-bs-target="#shared-lists" type="button" role="tab">
-                Shared With Me
+                <i class="fas fa-share-alt me-2"></i>Shared With Me
+                <span class="badge bg-success ms-2">@sharedLists.Count()</span>
             </button>
         </li>
     </ul>
@@ -42,21 +115,20 @@
         <!-- MY LISTS TAB -->
         <div class="tab-pane fade show active" id="my-lists" role="tabpanel">
             <div class="card shadow-sm">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0">My Todo Lists</h2>
-                    <a asp-action="Create" class="btn btn-success">Add New List</a>
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title mb-0 text-dark">
+                        <i class="fas fa-list-check me-2 text-primary"></i>My Todo Lists
+                    </h5>
                 </div>
-
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover align-middle text-center mb-0">
-                            <thead class="table-dark">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
+                                    <th class="ps-4">Name</th>
                                     <th>Description</th>
                                     <th>Role</th>
-                                    <th>Actions</th>
+                                    <th class="pe-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -65,20 +137,42 @@
                                     foreach (var item in Model)
                                     {
                                         <tr>
-                                            <td>@item.Id</td>
-                                            <td>@item.Name</td>
-                                            <td>@item.Description</td>
-                                            <td>
-                                                <span class="badge bg-primary">Owner</span>
+                                            <td class="ps-4">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-3">
+                                                        <i class="fas fa-list text-primary fs-5"></i>
+                                                    </div>
+                                                    <div>
+                                                        <span class="fw-semibold">@item.Name</span>
+                                                        <p class="text-muted small mb-0 mt-1">ID: @item.Id</p>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td>
-                                                <button class="btn btn-sm btn-outline-info me-1"
-                                                        onclick="showShareModal(@item.Id, '@item.Name.Replace("'", "\\'")')">
-                                                    Share
-                                                </button>
-                                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning me-1">Edit</a>
-                                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger me-1">Delete</a>
-                                                <a asp-controller="TodoTask" asp-action="Index" asp-route-listId="@item.Id" class="btn btn-sm btn-outline-primary">View Tasks</a>
+                                                <span class="text-muted">@(string.IsNullOrEmpty(item.Description) ? "No description" : item.Description)</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary rounded-pill">
+                                                    <i class="fas fa-crown me-1"></i>Owner
+                                                </span>
+                                            </td>
+                                            <td class="pe-4">
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-outline-info btn-sm"
+                                                            onclick="showShareModal(@item.Id, '@item.Name.Replace("'", "\\'")')">
+                                                        <i class="fas fa-share-alt me-1"></i>Share
+                                                    </button>
+                                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning btn-sm">
+                                                        <i class="fas fa-edit me-1"></i>Edit
+                                                    </a>
+                                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm"
+                                                       onclick="return confirm('Are you sure you want to delete this list?')">
+                                                        <i class="fas fa-trash me-1"></i>Delete
+                                                    </a>
+                                                    <a asp-controller="TodoTask" asp-action="Index" asp-route-listId="@item.Id" class="btn btn-primary btn-sm">
+                                                        <i class="fas fa-tasks me-1"></i>View Tasks
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     }
@@ -86,7 +180,16 @@
                                 else
                                 {
                                     <tr>
-                                        <td colspan="5" class="text-muted">No todo lists available.</td>
+                                        <td colspan="4" class="text-center py-5">
+                                            <div class="text-muted">
+                                                <i class="fas fa-list fa-3x mb-3"></i>
+                                                <h5>No todo lists available</h5>
+                                                <p>Create your first list to get started!</p>
+                                                <a asp-action="Create" class="btn btn-primary mt-2">
+                                                    <i class="fas fa-plus-circle me-2"></i>Create List
+                                                </a>
+                                            </div>
+                                        </td>
                                     </tr>
                                 }
                             </tbody>
@@ -99,19 +202,21 @@
         <!-- SHARED WITH ME TAB -->
         <div class="tab-pane fade" id="shared-lists" role="tabpanel">
             <div class="card shadow-sm">
-                <div class="card-header">
-                    <h2 class="mb-0">Lists Shared With Me</h2>
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title mb-0 text-dark">
+                        <i class="fas fa-share-alt me-2 text-success"></i>Lists Shared With Me
+                    </h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover align-middle text-center mb-0">
-                            <thead class="table-dark">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>Name</th>
+                                    <th class="ps-4">Name</th>
                                     <th>Description</th>
                                     <th>Owner</th>
                                     <th>My Role</th>
-                                    <th>Actions</th>
+                                    <th class="pe-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -120,17 +225,33 @@
                                     foreach (var list in sharedLists)
                                     {
                                         <tr>
-                                            <td>@list.Name</td>
-                                            <td>@list.Description</td>
-                                            <td>@list.OwnerName</td>
+                                            <td class="ps-4">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-3">
+                                                        <i class="fas fa-share-alt text-success fs-5"></i>
+                                                    </div>
+                                                    <div>
+                                                        <span class="fw-semibold">@list.Name</span>
+                                                    </div>
+                                                </div>
+                                            </td>
                                             <td>
-                                                <span class="badge @(list.Role == "Editor" ? "bg-warning" : "bg-info")">
-                                                    @list.Role
+                                                <span class="text-muted">@(string.IsNullOrEmpty(list.Description) ? "No description" : list.Description)</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary rounded-pill">
+                                                    <i class="fas fa-user me-1"></i>@list.OwnerName
                                                 </span>
                                             </td>
                                             <td>
-                                                <a asp-controller="TodoTask" asp-action="Index" asp-route-listId="@list.TodoListId" class="btn btn-sm btn-outline-primary">
-                                                    View Tasks
+                                                <span class="badge @(list.Role == "Editor" ? "bg-warning" : "bg-info") rounded-pill">
+                                                    <i class="fas @(list.Role == "Editor" ? "fa-edit" : "fa-eye") me-1"></i>@list.Role
+                                                </span>
+                                            </td>
+                                            <td class="pe-4">
+                                                <a asp-controller="TodoTask" asp-action="Index" asp-route-listId="@list.TodoListId"
+                                                   class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-tasks me-1"></i>View Tasks
                                                 </a>
                                             </td>
                                         </tr>
@@ -139,7 +260,13 @@
                                 else
                                 {
                                     <tr>
-                                        <td colspan="5" class="text-muted">No lists shared with you yet.</td>
+                                        <td colspan="5" class="text-center py-5">
+                                            <div class="text-muted">
+                                                <i class="fas fa-share-alt fa-3x mb-3"></i>
+                                                <h5>No lists shared with you yet</h5>
+                                                <p>Other users can share their lists with you</p>
+                                            </div>
+                                        </td>
                                     </tr>
                                 }
                             </tbody>
@@ -151,51 +278,118 @@
     </div>
 </div>
 
-
-
 <!-- Share Modal -->
 <div class="modal fade" id="shareModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Share List: <span id="shareListName"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-share-alt me-2"></i>Share List: <span id="shareListName"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <!-- CHANGED: Added explicit controller and action routing -->
             <form method="post" asp-controller="TodoList" asp-action="ShareList" id="shareForm">
                 @Html.AntiForgeryToken()
                 <input type="hidden" id="shareListId" name="listId">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="selectedUser" class="form-label">Select User</label>
+                        <label for="selectedUser" class="form-label fw-semibold">Select User</label>
                         <select class="form-select" id="selectedUser" name="targetUserId" required>
                             <option value="">-- Select a user --</option>
                             @foreach (var user in availableUsers)
                             {
-                                <option value="@user.Id">@user.UserName</option>
+                                <option value="@user.Id">@user.UserName (@user.FullName)</option>
                             }
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="userRole" class="form-label">Role</label>
+                        <label for="userRole" class="form-label fw-semibold">Role</label>
                         <select class="form-select" id="userRole" name="role" required>
-                            <option value="Viewer">Viewer (Can only view)</option>
-                            <option value="Editor">Editor (Can edit tasks)</option>
+                            <option value="Viewer">Viewer (Can only view tasks)</option>
+                            <option value="Editor">Editor (Can create, edit, and delete tasks)</option>
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Share</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-share-alt me-1"></i>Share List
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<style>
+    .stats-card {
+        transition: all 0.3s ease;
+        border-left-width: 4px !important;
+    }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+    .stats-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .border-start-4 {
+        border-left-width: 4px !important;
+    }
+
+    .border-start-primary {
+        border-left-color: #4f46e5 !important;
+    }
+
+    .border-start-success {
+        border-left-color: #10b981 !important;
+    }
+
+    .border-start-info {
+        border-left-color: #06b6d4 !important;
+    }
+
+    .text-gradient {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(79, 70, 229, 0.05);
+    }
+
+    .nav-tabs .nav-link {
+        border: none;
+        color: #6b7280;
+        font-weight: 500;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+        }
+
+        .nav-tabs .nav-link:not(.active):hover {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: #4f46e5;
+        }
+</style>
+
 @section Scripts {
     <script>
-        // Minimal JavaScript - Only for UI
         function showShareModal(listId, listName) {
             document.getElementById('shareListName').textContent = listName;
             document.getElementById('shareListId').value = listId;
@@ -206,28 +400,19 @@
             modal.show();
         }
 
-        // Handle form submission with basic feedback
         document.getElementById('shareForm').addEventListener('submit', function (e) {
-            console.log("Form submitting...");
-
             const userSelect = document.getElementById('selectedUser');
             if (!userSelect.value) {
                 e.preventDefault();
-                alert('Please select a user');
+                alert('Please select a user to share the list with.');
                 userSelect.focus();
                 return false;
             }
-
-            console.log("Form submitted with:", {
-                listId: document.getElementById('shareListId').value,
-                targetUserId: userSelect.value,
-                role: document.getElementById('userRole').value
-            });
         });
 
-        // Refresh shared lists when tab is shown (optional enhancement)
+        // Refresh shared lists when tab is shown
         document.getElementById('shared-tab').addEventListener('shown.bs.tab', function () {
-            console.log('Shared tab shown - lists are loaded server-side');
+            console.log('Shared lists tab activated');
         });
     </script>
 }

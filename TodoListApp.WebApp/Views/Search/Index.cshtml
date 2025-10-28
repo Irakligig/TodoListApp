@@ -5,85 +5,305 @@
 
 <div class="container mt-4">
     <!-- Search Card -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header">
-            <h2 class="mb-0">Search Tasks</h2>
+    <div class="card shadow-lg border-0 rounded-3 mb-4">
+        <div class="card-header bg-primary text-white py-3 rounded-top-3">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-search me-3 fs-5"></i>
+                <h2 class="mb-0 fs-4">Search Tasks</h2>
+            </div>
         </div>
-        <div class="card-body">
-            <form asp-action="Results" method="post" class="row g-3">
+        <div class="card-body p-4">
+            <form asp-action="Results" method="post" class="row g-4">
                 <div class="col-md-6">
-                    <label asp-for="Query" class="form-label"></label>
-                    <input asp-for="Query" class="form-control" placeholder="Enter task name or description" />
+                    <label asp-for="Query" class="form-label fw-semibold">Search Term</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input asp-for="Query" class="form-control border-start-0" placeholder="Enter task name, description, or keywords" />
+                    </div>
+                    <span asp-validation-for="Query" class="text-danger small"></span>
                 </div>
+
                 <div class="col-md-6">
-                    <label asp-for="Status" class="form-label"></label>
+                    <label asp-for="Status" class="form-label fw-semibold">Status</label>
                     <select asp-for="Status" class="form-select">
-                        <option value="">All</option>
+                        <option value="">All Statuses</option>
                         <option value="false">Pending</option>
                         <option value="true">Completed</option>
                     </select>
                 </div>
+
                 <div class="col-md-6">
-                    <label asp-for="DueBefore" class="form-label"></label>
-                    <input asp-for="DueBefore" type="date" class="form-control" />
+                    <label asp-for="DueBefore" class="form-label fw-semibold">Due Before</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="fas fa-calendar text-muted"></i>
+                        </span>
+                        <input asp-for="DueBefore" type="date" class="form-control border-start-0" />
+                    </div>
                 </div>
+
                 <div class="col-md-6">
-                    <label asp-for="AssignedUserId" class="form-label"></label>
-                    <input asp-for="AssignedUserId" class="form-control" placeholder="User ID" />
+                    <label asp-for="AssignedUserId" class="form-label fw-semibold">Assigned User ID</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="fas fa-user text-muted"></i>
+                        </span>
+                        <input asp-for="AssignedUserId" class="form-control border-start-0" placeholder="Enter user ID" />
+                    </div>
                 </div>
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">Search</button>
+
+                <div class="col-12 mt-2">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-search me-2"></i>Search Tasks
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary px-4">
+                            <i class="fas fa-redo me-2"></i>Reset
+                        </a>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Results Table -->
-    @if (Model.Results != null && Model.Results.Any())
+    <!-- Results Section -->
+    @if (Model.Results != null)
     {
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <h3 class="mb-0">Results</h3>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover align-middle text-center mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Task Name</th>
-                                <th>Description</th>
-                                <th>Due Date</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var task in Model.Results)
-                            {
-                                var isOverdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
-                                <tr class="@(isOverdue ? "table-danger" : "")">
-                                    <td>@task.Name</td>
-                                    <td>@task.Description</td>
-                                    <td>@(task.DueDate?.ToString("yyyy-MM-dd") ?? "-")</td>
-                                    <td>
-                                        @if (task.IsCompleted)
-                                        {
-                                            <span class="badge bg-success">Completed</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-warning text-dark">Pending</span>
-                                        }
-                                    </td>
+        if (Model.Results.Any())
+        {
+            <div class="card shadow-lg border-0 rounded-3">
+                <div class="card-header bg-success text-white py-3 rounded-top-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-list-check me-3 fs-5"></i>
+                            <h3 class="mb-0 fs-4">Search Results (@Model.Results.Count())</h3>
+                        </div>
+                        <span class="badge bg-light text-success fs-6">Found @Model.Results.Count() tasks</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Task Name</th>
+                                    <th>Description</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Priority</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach (var task in Model.Results)
+                                {
+                                    var isOverdue = task.DueDate.HasValue && task.DueDate.Value < DateTime.Now && !task.IsCompleted;
+                                    var dueSoon = task.DueDate.HasValue && task.DueDate.Value > DateTime.Now && task.DueDate.Value <= DateTime.Now.AddDays(3) && !task.IsCompleted;
+
+                                    <tr class="@(isOverdue ? "table-danger" : dueSoon ? "table-warning" : "")">
+                                        <td class="ps-4 fw-semibold">
+                                            <div class="d-flex align-items-center">
+                                                @if (isOverdue)
+                                                {
+                                                    <i class="fas fa-exclamation-triangle text-danger me-2 fs-6" title="Overdue"></i>
+                                                }
+                                                else if (dueSoon)
+                                                {
+                                                    <i class="fas fa-clock text-warning me-2 fs-6" title="Due Soon"></i>
+                                                }
+                                                @task.Name
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@task.Description">
+                                                @(string.IsNullOrEmpty(task.Description) ? "-" : task.Description)
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if (task.DueDate.HasValue)
+                                            {
+                                                <div class="d-flex flex-column">
+                                                    <span class="fw-semibold @(isOverdue ? "text-danger" : dueSoon ? "text-warning" : "text-dark")">
+                                                        @task.DueDate.Value.ToString("MMM dd, yyyy")
+                                                    </span>
+                                                    <small class="text-muted">@task.DueDate.Value.ToString("hh:mm tt")</small>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (task.IsCompleted)
+                                            {
+                                                <span class="badge bg-success rounded-pill px-3 py-2">
+                                                    <i class="fas fa-check-circle me-1"></i>Completed
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark rounded-pill px-3 py-2">
+                                                    <i class="fas fa-clock me-1"></i>Pending
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (isOverdue)
+                                            {
+                                                <span class="badge bg-danger rounded-pill">
+                                                    <i class="fas fa-exclamation me-1"></i>Urgent
+                                                </span>
+                                            }
+                                            else if (dueSoon)
+                                            {
+                                                <span class="badge bg-warning text-dark rounded-pill">
+                                                    <i class="fas fa-clock me-1"></i>Soon
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary rounded-pill">Normal</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card shadow-lg border-0 rounded-3">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted mb-3">No tasks found</h4>
+                    <p class="text-muted mb-4">We couldn't find any tasks matching your search criteria.</p>
+                    <a asp-action="Index" class="btn btn-primary px-4">
+                        <i class="fas fa-redo me-2"></i>Try New Search
+                    </a>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <!-- Quick Search Tips -->
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-info text-white py-3 rounded-top-3">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-lightbulb me-3 fs-5"></i>
+                    <h4 class="mb-0 fs-5">Search Tips</h4>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-search text-info me-2 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">Keyword Search</h6>
+                                <p class="text-muted small mb-0">Search by task name, description, or any keywords</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-filter text-info me-2 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">Filter by Status</h6>
+                                <p class="text-muted small mb-0">Find pending or completed tasks</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-calendar text-info me-2 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">Date Filtering</h6>
+                                <p class="text-muted small mb-0">Find tasks due before a specific date</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-users text-info me-2 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">User Assignment</h6>
+                                <p class="text-muted small mb-0">Search tasks assigned to specific users</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     }
-    else if (Model.Results != null)
-    {
-        <div class="alert alert-info">No tasks found matching your search criteria.</div>
-    }
 </div>
+
+<!-- Add Font Awesome for icons -->
+<style>
+    .card {
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add focus effects to form controls
+        const formControls = document.querySelectorAll('.form-control, .form-select');
+        formControls.forEach(control => {
+            control.addEventListener('focus', function() {
+                this.parentElement.classList.add('focused');
+            });
+
+            control.addEventListener('blur', function() {
+                this.parentElement.classList.remove('focused');
+            });
+        });
+
+        // Clear form functionality
+        const clearBtn = document.querySelector('a[asp-action="Index"]');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelector('form').reset();
+            });
+        }
+
+        // Add loading state to search button
+        const searchForm = document.querySelector('form');
+        if (searchForm) {
+            searchForm.addEventListener('submit', function() {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Searching...';
+                    submitBtn.disabled = true;
+                }
+            });
+        }
+    });
+</script>
