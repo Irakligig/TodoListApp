@@ -6,19 +6,19 @@ namespace TodoListApp.WebApi.Services;
 
 public class PermissionService : IPermissionService
 {
-    private readonly TodoListDbContext _context;
-    private readonly ILogger<PermissionService> _logger;
+    private readonly TodoListDbContext context;
+    private readonly ILogger<PermissionService> logger;
 
     public PermissionService(TodoListDbContext context, ILogger<PermissionService> logger)
     {
-        _context = context;
-        _logger = logger;
+        this.context = context;
+        this.logger = logger;
     }
 
     public async Task<string?> GetUserRoleAsync(int todoListId, string userId)
     {
         // Check if user is the owner
-        var todoList = await _context.TodoLists
+        var todoList = await this.context.TodoLists
             .FirstOrDefaultAsync(tl => tl.Id == todoListId);
 
         if (todoList?.OwnerId == userId)
@@ -27,7 +27,7 @@ public class PermissionService : IPermissionService
         }
 
         // Check if user has a role in TodoListUsers
-        var todoListUser = await _context.Set<TodoListUser>()
+        var todoListUser = await this.context.Set<TodoListUser>()
             .FirstOrDefaultAsync(tlu => tlu.TodoListId == todoListId && tlu.UserId == userId);
 
         return todoListUser?.Role;
@@ -35,31 +35,31 @@ public class PermissionService : IPermissionService
 
     public async Task<bool> CanViewTodoListAsync(int todoListId, string userId)
     {
-        var role = await GetUserRoleAsync(todoListId, userId);
+        var role = await this.GetUserRoleAsync(todoListId, userId);
         return role != null; // Owner, Editor, or Viewer can view
     }
 
     public async Task<bool> CanEditTodoListAsync(int todoListId, string userId)
     {
-        var role = await GetUserRoleAsync(todoListId, userId);
+        var role = await this.GetUserRoleAsync(todoListId, userId);
         return role == "Owner" || role == "Editor";
     }
 
     public async Task<bool> CanDeleteTodoListAsync(int todoListId, string userId)
     {
-        var role = await GetUserRoleAsync(todoListId, userId);
+        var role = await this.GetUserRoleAsync(todoListId, userId);
         return role == "Owner"; // Only owners can delete
     }
 
     public async Task<bool> CanManageTasksAsync(int todoListId, string userId)
     {
-        var role = await GetUserRoleAsync(todoListId, userId);
+        var role = await this.GetUserRoleAsync(todoListId, userId);
         return role == "Owner" || role == "Editor";
     }
 
     public async Task<bool> CanViewTaskAsync(int taskId, string userId)
     {
-        var task = await _context.TodoTasks
+        var task = await this.context.TodoTasks
             .Include(t => t.TodoList)
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
@@ -75,12 +75,12 @@ public class PermissionService : IPermissionService
         }
 
         // Check if user has access to the todo list
-        return await CanViewTodoListAsync(task.TodoListId, userId);
+        return await this.CanViewTodoListAsync(task.TodoListId, userId);
     }
 
     public async Task<bool> CanEditTaskAsync(int taskId, string userId)
     {
-        var task = await _context.TodoTasks
+        var task = await this.context.TodoTasks
             .Include(t => t.TodoList)
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
@@ -96,12 +96,12 @@ public class PermissionService : IPermissionService
         }
 
         // Check if user can manage tasks in the todo list
-        return await CanManageTasksAsync(task.TodoListId, userId);
+        return await this.CanManageTasksAsync(task.TodoListId, userId);
     }
 
     public async Task<bool> CanDeleteTaskAsync(int taskId, string userId)
     {
-        var task = await _context.TodoTasks
+        var task = await this.context.TodoTasks
             .Include(t => t.TodoList)
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
@@ -116,7 +116,7 @@ public class PermissionService : IPermissionService
 
     public async Task<bool> CanManageTagsAsync(int taskId, string userId)
     {
-        var task = await _context.TodoTasks
+        var task = await this.context.TodoTasks
             .Include(t => t.TodoList)
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
@@ -126,14 +126,14 @@ public class PermissionService : IPermissionService
         }
 
         // Only owners and editors can manage tags
-        return await CanManageTasksAsync(task.TodoListId, userId);
+        return await this.CanManageTasksAsync(task.TodoListId, userId);
     }
 
     public async Task<bool> CanManageCommentsAsync(int taskId, string userId)
     {
         try
         {
-            var task = await _context.TodoTasks
+            var task = await this.context.TodoTasks
                 .Include(t => t.TodoList)
                 .FirstOrDefaultAsync(t => t.Id == taskId);
 
@@ -155,7 +155,7 @@ public class PermissionService : IPermissionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in CanManageCommentsAsync");
+            this.logger.LogError(ex, "Error in CanManageCommentsAsync");
             return false;
             throw;
         }

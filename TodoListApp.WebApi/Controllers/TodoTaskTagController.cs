@@ -63,7 +63,7 @@ public class TodoTaskTagController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return this.Forbid(ex.Message);
+            return this.StatusCode(403, ex.Message);
         }
     }
 
@@ -83,7 +83,7 @@ public class TodoTaskTagController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return this.Forbid(ex.Message);
+            return this.StatusCode(403, ex.Message);
         }
     }
 
@@ -91,9 +91,16 @@ public class TodoTaskTagController : ControllerBase
     [HttpGet("bytag/{tagName}")]
     public async Task<IActionResult> GetTasksByTag(string tagName)
     {
-        var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
-        var tasks = await this.tagService.GetTasksByTagAsync(userId, tagName);
-        return this.Ok(tasks);
+        try
+        {
+            var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "dev-key";
+            var tasks = await this.tagService.GetTasksByTagAsync(userId, tagName);
+            return this.Ok(tasks);
+        }
+        catch(UnauthorizedAccessException ex)
+        {
+            return this.StatusCode(403, ex.Message);
+        }
     }
 }
 

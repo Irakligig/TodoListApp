@@ -159,6 +159,22 @@ namespace TodoListApp.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(TaskWithTagsViewModel model)
         {
+            Console.WriteLine($"=== DEBUG EDIT POST ===");
+            Console.WriteLine($"AssignedUserId from form: '{model.AssignedUserId}'");
+            Console.WriteLine($"TaskId: {model.Id}, ListId: {model.TodoListId}");
+            Console.WriteLine($"ModelState IsValid: {ModelState.IsValid}");
+
+            // Log all model state errors
+            foreach (var key in ModelState.Keys)
+            {
+                var state = ModelState[key];
+                foreach (var error in state.Errors)
+                {
+                    Console.WriteLine($"Field: {key}, Error: {error.ErrorMessage}");
+                }
+            }
+
+
             if (!authService.IsJwtPresent() || !authService.IsJwtValid())
             {
                 return RedirectToAction("Login", "Auth");
@@ -182,12 +198,6 @@ namespace TodoListApp.WebApp.Controllers
 
             try
             {
-                var addedtag = model.NewTag;
-                if (!string.IsNullOrWhiteSpace(addedtag))
-                {
-                    await tagService.AddTagToTaskAsync(model.Id, addedtag);
-                }
-
                 var apiModel = new TodoTaskModel
                 {
                     Id = model.Id,
@@ -198,6 +208,12 @@ namespace TodoListApp.WebApp.Controllers
                     TodoListId = model.TodoListId,
                     AssignedUserId = model.AssignedUserId
                 };
+
+                var addedtag = model.NewTag;
+                if (!string.IsNullOrWhiteSpace(addedtag))
+                {
+                    await tagService.AddTagToTaskAsync(model.Id, addedtag);
+                }
 
                 await taskService.UpdateAsync(model.TodoListId, model.Id, apiModel);
                 TempData["SuccessMessage"] = "Task updated successfully!";

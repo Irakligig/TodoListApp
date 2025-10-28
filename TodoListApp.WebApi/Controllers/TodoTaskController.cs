@@ -137,6 +137,8 @@ namespace TodoListApp.WebApi.Controllers
                 DueDate = model.DueDate,
                 IsCompleted = model.IsCompleted,
                 TodoListId = todoListId,
+                AssignedUserId = model.AssignedUserId, // ADD THIS LINE
+                OwnerId = model.OwnerId,
             };
 
             try
