@@ -10,17 +10,17 @@ namespace TodoListApp.WebApi.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class TodoListShareController : ControllerBase  // Added : ControllerBase
+public class TodoListShareController : ControllerBase
 {
-    private readonly ITodoListShareService _shareService;
-    private readonly ILogger<TodoListShareController> _logger;
+    private readonly ITodoListShareService shareService;
+    private readonly ILogger<TodoListShareController> logger;
 
     public TodoListShareController(
         ITodoListShareService shareService,
         ILogger<TodoListShareController> logger)
     {
-        _shareService = shareService;
-        _logger = logger;
+        this.shareService = shareService;
+        this.logger = logger;
     }
 
     // Share a specific todo list with a user
@@ -29,14 +29,14 @@ public class TodoListShareController : ControllerBase  // Added : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = this.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return this.Unauthorized();
             }
 
-            await _shareService.ShareTodoListAsync(todoListId, request.TargetUserId, request.Role, userId);
-            return Ok(new { message = "Todo list shared successfully" });
+            await this.shareService.ShareTodoListAsync(todoListId, request.TargetUserId, request.Role, userId);
+            return this.Ok(new { message = "Todo list shared successfully" });
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -44,10 +44,11 @@ public class TodoListShareController : ControllerBase  // Added : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(ex.Message);
+            return this.NotFound(ex.Message);
         }
         catch (Exception ex)
         {
+            this.logger.LogError(ex, "Error sharing todo list {TodoListId}", todoListId);
             throw;
         }
     }
@@ -61,11 +62,11 @@ public class TodoListShareController : ControllerBase  // Added : ControllerBase
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return this.Unauthorized();
             }
 
-            await _shareService.UpdateShareAsync(todoListId, targetUserId, request.NewRole, userId);
-            return Ok(new { message = "Share updated successfully" });
+            await this.shareService.UpdateShareAsync(todoListId, targetUserId, request.NewRole, userId);
+            return this.Ok(new { message = "Share updated successfully" });
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -73,7 +74,7 @@ public class TodoListShareController : ControllerBase  // Added : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating share for todo list {TodoListId}", todoListId);
+            this.logger.LogError(ex, "Error updating share for todo list {TodoListId}", todoListId);
             throw;
         }
     }
@@ -87,11 +88,11 @@ public class TodoListShareController : ControllerBase  // Added : ControllerBase
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return this.Unauthorized();
             }
 
-            await _shareService.RemoveShareAsync(todoListId, targetUserId, userId);
-            return Ok(new { message = "Share removed successfully" });
+            await this.shareService.RemoveShareAsync(todoListId, targetUserId, userId);
+            return this.Ok(new { message = "Share removed successfully" });
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -99,7 +100,7 @@ public class TodoListShareController : ControllerBase  // Added : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing share for todo list {TodoListId}", todoListId);
+            this.logger.LogError(ex, "Error removing share for todo list {TodoListId}", todoListId);
             throw;
         }
     }
@@ -110,14 +111,14 @@ public class TodoListShareController : ControllerBase  // Added : ControllerBase
     {
         try
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = this.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return this.Unauthorized();
             }
 
-            var sharedUsers = await _shareService.GetSharedUsersAsync(todoListId, userId);
-            return Ok(sharedUsers);
+            var sharedUsers = await this.shareService.GetSharedUsersAsync(todoListId, userId);
+            return this.Ok(sharedUsers);
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -125,7 +126,7 @@ public class TodoListShareController : ControllerBase  // Added : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting shared users for todo list {TodoListId}", todoListId);
+            this.logger.LogError(ex, "Error getting shared users for todo list {TodoListId}", todoListId);
             throw;
         }
     }
@@ -139,15 +140,15 @@ public class TodoListShareController : ControllerBase  // Added : ControllerBase
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized();
+                return this.Unauthorized();
             }
 
-            var sharedLists = await _shareService.GetSharedWithMeAsync(userId);
-            return Ok(sharedLists);
+            var sharedLists = await this.shareService.GetSharedWithMeAsync(userId);
+            return this.Ok(sharedLists);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting shared lists for user");
+            this.logger.LogError(ex, "Error getting shared lists for user");
             throw;
         }
     }

@@ -2,22 +2,22 @@ namespace TodoListApp.WebApi.Data
 {
     public class TodoTask
     {
-        public int Id { get; set; }// Task ID
+        public int Id { get; set; }
 
-        public string Name { get; set; } = string.Empty; // Task title
+        public string Name { get; set; } = string.Empty;
 
-        public string Description { get; set; } = string.Empty; // Task description
+        public string Description { get; set; } = string.Empty;
 
-        public DateTime? DueDate { get; set; }// Optional due date
+        public DateTime? DueDate { get; set; }
 
-        public bool IsCompleted { get; set; }// Completion status
+        public bool IsCompleted { get; set; }
 
-        public int TodoListId { get; set; }// Parent TodoList ID
+        public int TodoListId { get; set; }
 
-        public string? OwnerId { get; set; } // Owner of the task
+        public string? OwnerId { get; set; }
 
-        public string AssignedUserId { get; set; } = string.Empty; // User assigned to this task
+        public string AssignedUserId { get; set; } = string.Empty;
 
-        public List<TodoTag> Tags { get; set; } = new List<TodoTag>(); // Associated tags
+        public List<TodoTag> Tags { get; set; } = new List<TodoTag>();
     }
 }

@@ -48,7 +48,7 @@ namespace TodoListApp.WebApi.Controllers
         public async Task<ActionResult<TodoCommentModel>> AddComment(int taskId, [FromBody] TodoCommentCreateModel model)
         {
             var userId = this.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userName = this.User.FindFirstValue(ClaimTypes.Name) ?? "Unknown User"; // Get username from claims
+            var userName = this.User.FindFirstValue(ClaimTypes.Name) ?? "Unknown User"; 
 
             if (userId == null)
             {

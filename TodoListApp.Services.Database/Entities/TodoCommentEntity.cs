@@ -7,10 +7,10 @@ public class TodoCommentEntity
     public int Id { get; set; }
 
     [Required]
-    public int TaskId { get; set; }// Task that the comment belongs to
+    public int TaskId { get; set; }
 
     [Required]
-    public string UserId { get; set; } = null!; // Author of the comment
+    public string UserId { get; set; } = null!;
 
     [Required]
     [MaxLength(100)]

@@ -21,7 +21,6 @@ namespace TodoListApp.WebApi.Controllers
         {
             var users = await this.usersDb.Users.ToListAsync();
 
-            // Return TodoUserModel with UserName included
             var userModels = users.Select(u => new TodoUserModel
             {
                 Id = u.Id,

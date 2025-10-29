@@ -37,7 +37,7 @@ namespace TodoListApp.WebApp.Services
 
         public async Task<bool> AddTodoListAsync(TodoListModel newList)
         {
-            AttachJwt();
+            this.AttachJwt();
             var res = await _http.PostAsJsonAsync("/api/todolist", newList);
             res.EnsureSuccessStatusCode();
             return res.IsSuccessStatusCode; // Return true if request succeeded
@@ -45,7 +45,7 @@ namespace TodoListApp.WebApp.Services
 
         public async Task<bool> UpdateTodoListAsync(TodoListModel updatedList)
         {
-            AttachJwt();
+            this.AttachJwt();
             var res = await _http.PutAsJsonAsync($"/api/todolist/{updatedList.Id}", updatedList);
             res.EnsureSuccessStatusCode();
             return res.IsSuccessStatusCode;
@@ -53,7 +53,7 @@ namespace TodoListApp.WebApp.Services
 
         public async Task<bool> DeleteTodoListAsync(int id)
         {
-            AttachJwt();
+            this.AttachJwt();
             var res = await _http.DeleteAsync($"/api/todolist/{id}");
             res.EnsureSuccessStatusCode();
             return res.IsSuccessStatusCode;
@@ -61,7 +61,7 @@ namespace TodoListApp.WebApp.Services
 
         public async Task<bool> ShareTodoListAsync(int todoListId, string targetUserId, string role)
         {
-            AttachJwt();
+            this.AttachJwt();
             var request = new { targetUserId, role };
             var res = await _http.PostAsJsonAsync($"/api/todolistshare/todolists/{todoListId}/share", request);
 
@@ -79,7 +79,7 @@ namespace TodoListApp.WebApp.Services
         {
             try
             {
-                AttachJwt();
+                this.AttachJwt();
                 var res = await _http.GetAsync("/api/todolistshare/shared-with-me");
 
                 Console.WriteLine($"GetSharedWithMe Status: {res.StatusCode}");

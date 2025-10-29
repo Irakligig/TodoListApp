@@ -111,7 +111,7 @@ public class PermissionService : IPermissionService
         }
 
         // Only owners and editors can delete tasks
-        return await CanManageTasksAsync(task.TodoListId, userId);
+        return await this.CanManageTasksAsync(task.TodoListId, userId);
     }
 
     public async Task<bool> CanManageTagsAsync(int taskId, string userId)
@@ -142,7 +142,7 @@ public class PermissionService : IPermissionService
                 return false;
             }
 
-            var role = await GetUserRoleAsync(task.TodoListId, userId);
+            var role = await this.GetUserRoleAsync(task.TodoListId, userId);
 
             if (string.IsNullOrEmpty(role))
             {
