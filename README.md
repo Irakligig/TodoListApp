@@ -1,108 +1,122 @@
-📝 To-Do List Application
+# 📝 To-Do List Application
 
-A full-stack task management app built with ASP.NET Core MVC + Web API, designed to help users create, view, edit, and delete to-dos using clean architecture principles.
+A full-stack task management app built with **ASP.NET Core MVC + Web API**, designed to help users create, view, edit, and delete to-dos using clean architecture principles.
 
-This project was completed as part of the EPAM Capstone and demonstrates real-world backend and full-stack development skills.
+This project was completed as part of the **EPAM Capstone** and demonstrates real-world backend and full-stack development skills.
 
-🚀 Features
+---
 
-Add, edit, and delete tasks
+## 🚀 Features
 
-SQL Server persistent storage
+- Add, edit, and delete tasks  
+- SQL Server persistent storage  
+- RESTful Web API + MVC frontend  
+- Clean services and repository architecture  
+- Professional, scalable solution structure  
 
-RESTful Web API + MVC frontend
+---
 
-Clean services and repository architecture
+## 📦 Tech Stack
 
-Professional, scalable solution structure
+| Layer         | Technology                    |
+|---------------|-------------------------------|
+| Backend API   | ASP.NET Core Web API           |
+| Frontend      | ASP.NET Core MVC               |
+| Database      | SQL Server (LocalDB / Express)|
+| ORM           | Entity Framework Core          |
+| Architecture  | Services & Repository Pattern  |
+| Principles    | SOLID, layered design          |
 
-📦 Tech Stack
-Layer	Technology
-Backend API	ASP.NET Core Web API
-Frontend	ASP.NET Core MVC
-Database	SQL Server (LocalDB / Express)
-ORM	Entity Framework Core
-Architecture	Services & Repository Pattern
-Principles	SOLID, layered design
-📁 Project Structure
+---
+
+## 📁 Project Structure
+
 TodoListApp/
-├── TodoListApp.WebApp/            ← MVC frontend
-├── TodoListApp.WebApi/            ← REST API
-├── TodoListApp.Services/          ← Business logic
+├── TodoListApp.WebApp/ ← MVC frontend
+├── TodoListApp.WebApi/ ← REST API
+├── TodoListApp.Services/ ← Business logic
 ├── TodoListApp.Services.Database/ ← Database operations
-├── images/                        ← Screenshots & assets
+├── images/ ← Screenshots & assets
 ├── .gitignore
 └── TodoListApp.sln
 
-🛠 Getting Started
-Prerequisites
 
-.NET 7 SDK or newer
+---
 
-SQL Server Express / LocalDB
+## 🛠 Getting Started
 
-Visual Studio or VS Code
+### Prerequisites
 
-Clone the Repository
+- .NET 7 SDK or newer  
+- SQL Server Express / LocalDB  
+- Visual Studio or VS Code  
+
+### Clone the Repository
+
+```bash
 git clone https://github.com/Irakligig/TodoListApp.git
 cd TodoListApp
 
-Running the App
 
-Open TodoListApp.sln in Visual Studio
+## Running the App
 
-Restore NuGet packages
+  1.Open TodoListApp.sln in Visual Studio
 
-Set WebApi and WebApp as startup projects
+  2.Restore NuGet packages
 
-Update SQL connection string in appsettings.json
+  3.Set WebApi and WebApp as startup projects
 
-Press F5 to run
+  4.Update SQL connection string in appsettings.json
 
-🧪 How It Works
+  5.Press F5 to run
 
-The user interacts with the MVC frontend
+## How It Works
 
-The frontend sends requests to the Web API
+  1.The user interacts with the MVC frontend
 
-The API performs CRUD operations using Entity Framework Core
+  2.The frontend sends requests to the Web API
 
-SQL Server stores and updates task data
+  3.The API performs CRUD operations using Entity Framework Core
 
-📌 Core API Endpoints
-Action	Route
-List tasks	GET /api/tasks
-Create task	POST /api/tasks
-Update task	PUT /api/tasks/{id}
-Delete task	DELETE /api/tasks/{id}
-❓ Why This Project Matters
+  4.SQL Server stores and updates task data
+
+
+## 📌 Core API Endpoints
+
+| Action       | Route                  |
+|--------------|-----------------------|
+| List tasks   | `GET /api/tasks`      |
+| Create task  | `POST /api/tasks`     |
+| Update task  | `PUT /api/tasks/{id}` |
+| Delete task  | `DELETE /api/tasks/{id}` |
+
+---
+
+## ❓ Why This Project Matters
 
 This project shows that you can:
 
-Build real-world full-stack apps
-
-Design and consume REST APIs
-
-Use SQL Server + EF Core effectively
-
-Organize a solution using industry-standard architecture
-
-Produce readable, maintainable, scalable code
+- Build **real-world full-stack apps**  
+- Design and consume **REST APIs**  
+- Use **SQL Server + EF Core** effectively  
+- Organize a solution using **industry-standard architecture**  
+- Produce **readable, maintainable, scalable code**  
 
 This is exactly the kind of practical project recruiters look for.
 
-📈 Future Improvements
+---
 
-User authentication & JWT
+## 📈 Future Improvements
 
-Task priorities and due dates
+- User authentication & JWT  
+- Task priorities and due dates  
+- Swagger API documentation  
+- Unit & integration tests  
+- Dark/light theme UI  
 
-Swagger API documentation
+---
 
-Unit & integration tests
-
-Dark/light theme UI
-
-⭐ Support
+## ⭐ Support
 
 If this project helped or impressed you, leaving a ⭐ on the repo helps a lot!
+
