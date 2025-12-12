@@ -51,12 +51,8 @@ TodoListApp/
 - SQL Server Express / LocalDB  
 - Visual Studio or VS Code  
 
-### Clone the Repository
-
-```bash
 git clone https://github.com/Irakligig/TodoListApp.git
 cd TodoListApp
-
 
 ## Running the App
 
@@ -119,4 +115,3 @@ This is exactly the kind of practical project recruiters look for.
 ## ⭐ Support
 
 If this project helped or impressed you, leaving a ⭐ on the repo helps a lot!
-
