@@ -79,12 +79,30 @@ cd TodoListApp
 
 ## 📌 Core API Endpoints
 
-| Action       | Route                  |
-|--------------|-----------------------|
-| List tasks   | `GET /api/tasks`      |
-| Create task  | `POST /api/tasks`     |
-| Update task  | `PUT /api/tasks/{id}` |
-| Delete task  | `DELETE /api/tasks/{id}` |
+| Action                             | Route                              | Method |
+|-----------------------------------|-----------------------------------|--------|
+| List all tasks                      | `/api/tasks`                      | GET    |
+| Get task by ID                      | `/api/tasks/{id}`                 | GET    |
+| Create new task                     | `/api/tasks`                      | POST   |
+| Update existing task                | `/api/tasks/{id}`                 | PUT    |
+| Delete task                         | `/api/tasks/{id}`                 | DELETE |
+| List all users                      | `/api/users`                      | GET    |
+| Get user by ID                      | `/api/users/{id}`                 | GET    |
+| Create new user                     | `/api/users`                      | POST   |
+| Update user                          | `/api/users/{id}`                 | PUT    |
+| Delete user                          | `/api/users/{id}`                 | DELETE |
+| Assign task to user                  | `/api/tasks/{id}/assign`          | POST   |
+| Mark task as completed               | `/api/tasks/{id}/complete`        | PATCH  |
+| Get tasks by status                  | `/api/tasks/status/{status}`      | GET    |
+| Get tasks by assigned user           | `/api/tasks/user/{userId}`        | GET    |
+| Search tasks by keyword              | `/api/tasks/search/{keyword}`     | GET    |
+| List task priorities                 | `/api/tasks/priorities`           | GET    |
+| Set task priority                    | `/api/tasks/{id}/priority`        | PATCH  |
+| List task categories                 | `/api/tasks/categories`           | GET    |
+| Set task category                    | `/api/tasks/{id}/category`        | PATCH  |
+| Get user tasks statistics            | `/api/users/{id}/statistics`     | GET    |
+| Bulk update tasks                    | `/api/tasks/bulk-update`          | PUT    |
+| Bulk delete tasks                    | `/api/tasks/bulk-delete`          | DELETE |
 
 ---
 
